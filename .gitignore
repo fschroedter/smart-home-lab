@@ -1,0 +1,7 @@
+.esphome/
+.venv/
+.vscode/
+workspace/
+secrets.yaml
+*.code-workspace
+_tmp
