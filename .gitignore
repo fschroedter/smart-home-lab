@@ -1,7 +1,9 @@
 .esphome/
 .venv/
 .vscode/
+local/
 workspace/
 secrets.yaml
 *.code-workspace
 _tmp
+__pycache__

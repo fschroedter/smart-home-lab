@@ -1,0 +1,55 @@
+---
+# ==========================================================
+# BASE CONFIGURATION (Official Google / ESPHome Style)
+# ==========================================================
+Language: Cpp
+BasedOnStyle: Google
+AccessModifierOffset: -2
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+BinPackArguments: true
+BinPackParameters: true
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Custom
+BreakBeforeTernaryOperators: true
+ColumnLimit: 120
+IndentWidth: 2
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Left
+Standard: Cpp11
+UseTab: Never
+
+# ==========================================================
+# MY INDIVIDUAL OVERRIDES
+# ==========================================================
+SortIncludes: true
+IncludeCategories:
+- Regex: '^"esphome/core/.*"'
+  Priority: 1
+- Regex: '^"esphome/components/.*"'
+  Priority: 2
+- Regex: '^<.*'
+  Priority: 3
+- Regex: '.*'
+  Priority: 4
