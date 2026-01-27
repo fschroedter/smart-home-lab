@@ -11,13 +11,14 @@
  * @note This library requires a 16-bit color display (RGB565).
  */
 
-#pragma once
 #include "proxy.h"
 
 #include "esphome/core/color.h"
 
 #include "esphome/components/display/display.h"
 #include "esphome/components/display/display_buffer.h"
+
+#include "defs.h"
 
 namespace esphome {
 namespace gfx_blend {

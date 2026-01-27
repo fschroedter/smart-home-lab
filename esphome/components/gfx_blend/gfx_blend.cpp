@@ -11,8 +11,6 @@
  * @note This library requires a 16-bit color display (RGB565).
  */
 
-// #pragma once
-
 #include "gfx_blend.h"
 
 #include "esphome/core/color.h"
@@ -42,8 +40,8 @@ void GfxBlend::dump_config()
     ESP_LOGE(TAG, "Incompatible display: 16-bit RGB565 required for correct blending");
   }
 
-  ESP_LOGCONFIG(TAG, "  Width: %d", this->width_);
-  ESP_LOGCONFIG(TAG, "  Height: %d", this->height_);
+  ESP_LOGCONFIG(TAG, "  Width: %d", this->disp_->get_width());
+  ESP_LOGCONFIG(TAG, "  Height: %d", this->disp_->get_height());
 }
 
 /**
@@ -232,7 +230,7 @@ void GfxBlend::add_step_internal_(F&& func)
   this->pipeline_.push_back(std::move(step));
 }
 
-const char* GfxBlend::display_type_to_string(uint8_t type)
+const char* GfxBlend::display_type_to_string_(uint8_t type)
 {
   static const char* const TYPES[] = {"NONE", "BINARY", "GRAYSCALE", "COLOR"};
   uint8_t index = static_cast<uint8_t>(type);

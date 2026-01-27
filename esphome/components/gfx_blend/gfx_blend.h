@@ -16,14 +16,13 @@
 #include "esphome/components/display/display_buffer.h"
 #include "esphome/components/display/display_color_utils.h"
 
+#include <initializer_list>
 #include <type_traits>
+#include <vector>
 
 #include "accessor.h"
 #include "defs.h"
 #include "effects.h"
-#include <initializer_list>
-#include <vector>
-
 #include "gfx_blend.h"
 #include "proxy.h"
 #include "shapes.h"
@@ -32,7 +31,6 @@ namespace esphome {
 namespace gfx_blend {
 
 static const char* const TAG = "gfx_blend";
-
 static constexpr const char* MODULE_NAME = "GfxBlend";
 
 class GfxBlend;
@@ -173,7 +171,7 @@ protected:
   template <typename F>
   void add_step_internal_(F&& func);
   inline uint16_t HOT read_raw_pixel_from_buffer_(int x, int y);
-  const char* display_type_to_string(uint8_t type);
+  const char* display_type_to_string_(uint8_t type);
 
   template <typename TBlender>
   friend class GfxProxy;
