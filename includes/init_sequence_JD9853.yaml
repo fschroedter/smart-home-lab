@@ -1,5 +1,5 @@
 display:  
-  - id: !extend my_display
+  - id: !extend my_display    # <-- Adjust display ID to your configuration
     init_sequence: 
       - [0xDF, 0x98, 0x53]    # Unlock
       - [0xB2, 0x23]
