@@ -1,15 +1,15 @@
 /**
- * GfxBlend: Extended Blending for ESPHome
+ * Graphics extension for rendering blended shapes on ESPHome displays.
  *
- * @brief Gfx blend shapes engine for ESPHome displays.
- * This library extends ESPHome's display capabilities by adding
- * transparency (alpha blending) and advanced geometric shapes
- * like rounded rectangles, ellipses, and gradients.
- *
+ * @brief This library extends ESPHome's native display capabilities with support for 
+ * alpha blending (transparency), image masking, and advanced geometric primitives 
+ * including rounded rectangles, ellipses, and color gradients.
+ * 
  * @author fschroedter
  * @copyright MIT License
  * @note This library requires a 16-bit color display (RGB565).
  */
+
 
 #pragma once
 
