@@ -33,7 +33,10 @@ For more advanced setup options, check out the official **ESPHome** configuratio
 
 # Load this package to extend the display with a custom init sequence for the JD9853 display drivers
 packages:
-  remote_package_shorthand: github://fschroedter/smart-home-lab/includes/init_sequence_JD9853.yaml
+  remote_package_files:
+    url: https://github.com/fschroedter/smart-home-lab
+    files: [ includes/init_sequence_JD9853.yaml ]
+
 
 display:
   - platform: ili9xxx
