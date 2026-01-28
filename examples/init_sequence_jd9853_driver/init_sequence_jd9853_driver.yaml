@@ -1,0 +1,57 @@
+esphome:
+  name: demo_jd9853_init_sequence
+  min_version: 2025.12.0
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+image:
+  images: 
+    - file: ./flower.bmp    
+      id: my_image
+      type: RGB565
+
+logger: 
+    level: INFO
+
+output:
+  - platform: ledc
+    id: lcd_backlight
+    pin: GPIO23
+    inverted: false
+    frequency: 1000 Hz
+
+light:
+  - platform: monochromatic
+    output: lcd_backlight
+    id: backlight
+    name: "LCD Backlight"
+    restore_mode: ALWAYS_ON
+
+# Extend display with init_sequence
+packages:
+  remote_package_files:
+    url: https://github.com/fschroedter/smart-home-lab
+    files: [ includes/init_sequence_JD9853.yaml ]
+
+display:
+  - platform: ili9xxx
+    model: CUSTOM
+    id: my_display
+    dc_pin:
+      number: GPIO15
+      ignore_strapping_warning: true
+    cs_pin: GPIO14
+    reset_pin: GPIO22
+    dimensions:
+      width: 172
+      height: 320
+      offset_width: 34
+      offset_height: 0
+    invert_colors: false
+    lambda: |-
+      it.image(0, 0, id(my_image));
+ 
