@@ -8,7 +8,7 @@ Currently, the **JD9853 display driver** is not officially supported by ESPHome.
 
 
 > [!IMPORTANT]
-> **Model Compatibility:** Do not confuse this board with the **ESP32-S3-LCD-1.47** or **ESP32-C6-LCD-1.47** (board versions without touch panel). Those Boards use the **ST7789** driver, which is already supported by the ESPHome ILI9xxx TFT display component.
+> **Model Compatibility:** Do not confuse this board with the **ESP32-S3-LCD-1.47** or **ESP32-C6-LCD-1.47** (board versions without touch panel). Those boards use the **ST7789** driver, which is already supported by the ESPHome ILI9xxx TFT display component.
 
 > [!NOTE]
 Although I have not specifically tested the ESP32-S3-Touch-LCD-1.47, I assume it should work as well, provided the pin configuration is adjusted.
