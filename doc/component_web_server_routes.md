@@ -181,8 +181,8 @@ This recommendation is based on the standard **Maximum Segment Size (MSS)** of a
 | HTTP&nbsp;Body&nbsp;Size | Network&nbsp;Behavior | Impact |
 | :--- | :--- | :--- |
 | **<&nbsp;150 bytes** | Tiny Packet |  **Ineffizcient:** The header (approx. 100 Bytes) is almost as large as the data. High CPU load per byte.  |
-| **150&nbsp;–&nbsp;1.000&nbsp;bytes** | Single Packet |  **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
+| **150&nbsp;–&nbsp;1.000&nbsp;bytes** | Single Packet |  **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently. |
 | **1000 – ~1.200&nbsp;bytes** | Single Packet |  **Optimal:** Lowest latency, minimal CPU usage. |
-| **>  ~1.200 bytes** | Multiple Packets |  **Suboptimal:** Fragmentation: Higher overhead and latency due to multiple TCP segments and ACKs. |
+| **>  ~1.200 bytes** | Multiple Packets |  **Suboptimal:** High overhead due to fragmentation and additional ACKs |
 | **> ~16.384 bytes** | Large Payload |  **Caution:** Risk of heap fragmentation; use streaming for larger data. |
 
