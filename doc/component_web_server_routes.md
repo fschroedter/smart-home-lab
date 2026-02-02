@@ -20,6 +20,7 @@ It enables **sending data of any size** by streaming it in segments (e.g., from 
     * **subpath**: (Optional) An additional path segment appended to the base route. It defines a nested URL structure (e.g., `/route/subpath`)
     * **content_type**: (Optional) Sets the initial HTTP header. Example: `application/json` or `text/plain` 
     * **content_disposition**: (Optional) Example: `inline`,  `attachment` or `attachment; filename=data.txt`
+    * **filename**: (Optional) Define the filename in the HTTP Header. This attribute cannot be used together with `content_disposition`.
     * **lambda**: (Required) The C++ code block executed when the route is called.
 
 
