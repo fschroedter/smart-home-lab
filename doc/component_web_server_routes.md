@@ -4,10 +4,11 @@
 [← Back to Overview](../README.md)
 
 
-# ESPHome Component: Web Server Route
+# Web Server Routes
 
-The [Web Server Route](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component provides a robust abstraction layer over the ESP-IDF `httpd` server for ESP32 devices, designed for efficient data delivery and memory safety.
-It enables **sending data of any size** by streaming it in segments (e.g., from an SD card) rather than buffering the entire payload. This allows for the delivery of massive files without exceeding the ESP32's limited RAM by utilizing functions like `send(*data, len)` to transmit raw data packets sequentially.
+The ESPHome Component [Web Server Routes](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component provides a **easy-to-use** abstraction layer over the ESP-IDF HTTP Server for ESP32 devices. It is designed for efficient data delivery and memory safety while **simplifying complex server tasks** into a developer-friendly interface.
+
+It enables **sending data of any size** by streaming it in segments (e.g., from an SD card) rather than buffering the entire payload. This allows for the delivery of massive files without exceeding the ESP32's limited RAM, as the component handles the heavy lifting of sequential packet transmission through straightforward functions like `send(message)`.
 
 ## Configuration variables
 
@@ -27,13 +28,13 @@ It enables **sending data of any size** by streaming it in segments (e.g., from 
 
 ## Lambda API functions
 
-* `send(...)`: Sends data to the client. Supports variadic (printf-style) formatting for variables.
+* `send(message)`: Sends data to the client. Supports variadic (printf-style) formatting.
 * `send_binary(*data, len)`: Sends raw binary data to the client. Useful for transmitting files, buffers, or non-text payloads.
 * `set_header(field, value)`: Registers an HTTP header. Only applied if the attribute was not set in YAML or previously in the lambda.
 
 * `set_content_disposition(value)`: A wrapper for `set_header` to define both the disposition mode and the filename.
 * `set_content_type(value)`: A wrapper for `set_header()` to define the Content-Type
-* `set_filename(my_filename)`: Convenience function to set the Content-Disposition header with a specific filename.
+* `set_filename(value)`: Convenience function to set the Content-Disposition header with a specific filename.
 
 * `get_query_param(key)`: Retrieves the value of a specific parameter from the URL query string (e.g., ?file=data.txt).
 * `get_key_value()`: Returns the string value of the "key" attribute defined in the YAML for the current route.
@@ -70,12 +71,14 @@ web_server_routes:
 This sample sets the HTTP Header 'Content-Disposition' with 'attachment' and custom filename that indicate to the web browser to download this file.
 
 **Endpoint provided by this configuration:**<br>
-`GET http://<HOSTNAME>.local/download`
+`GET http://<HOSTNAME>.local/infos/uptime`
 
 ```yaml
 web_server_routes:
+  path: infos
   routes:
     - filename: uptime.txt
+      subpath: uptime
       lambda: |-        
         // Sends a formatted string using variadic arguments (printf-style).
         it.send("Uptime: %lu ms", millis());
@@ -120,8 +123,7 @@ web_server_routes:
 
         // Extract the specified query parameter from the request and send its value as the response
         std::string date = it.get_query_param("date");
-        it.send(date);
-
+        it.send("\nDate: %s", date);
 
     # Specific key-based route
     - key: json-data
@@ -145,23 +147,29 @@ web_server_routes:
 
 
 ## Handling Long Loops and Large Responses
+
+> [!TIP]
+> Use `delay(1)` within long-running loops to prevent watchdog timer resets.
+>
+
 When generating long responses within a loop (e.g., iterating over hundreds of log entries), you must prevent the code from blocking the CPU for too long. If the loop runs without interruption, the **Task Watchdog Timer (TWDT)** might trigger a reboot, or the Wi-Fi stack may lose its connection.
 
 To keep the system stable, include a small delay or yield to allow the ESP32 to handle background tasks:
 
 ```cpp
+// Periodically yield to system tasks to prevent reboots and disconnects
 for (int i = 0; i < 10000; i++) {
     it.send("Data row content...");
     
-    // Periodically yield to system tasks to prevent reboots and disconnects
     if (i % 20 == 0) { 
-        delay(1); 
+        delay(1);   // Keeps Wi-Fi alive and feeds TWDT
     }
 }
 ``` 
 
 ## Performance & Packet Size Optimization
 
+> [!TIP]
 > **Aim for this limit to ensure your response fits into a single TCP packet.** When using the `send()` function, keep the total body size around **~1,200 bytes** to achieve the lowest possible latency and maximum stability for your ESP32-C6.
 
 ### The "Magic Limit"
@@ -172,7 +180,7 @@ This recommendation is based on the standard **Maximum Segment Size (MSS)** of a
 ### Network Behavior and Impact
 | HTTP Body Size | Network Behavior |Performance| Impact |
 | :--- | :--- | :--- | :--- |
-| **< 150 bytes** | Tiny Packet | **Slow (Overhead)**| **Ineffizcient:** The header (approx. 100B) is almost as large as the data. High CPU load per byte.  |
+| **< 150 bytes** | Tiny Packet | **Slow (Overhead)**| **Ineffizcient:** The header (approx. 100 Byte) is almost as large as the data. High CPU load per byte.  |
 | **150 - 1.000 bytes** | Single Packet | **Fast**| **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
 | **< ~1.200 bytes** | Single Packet | **Ultra Fast**| **Optimal:** Lowest latency, minimal CPU usage. |
 | **>  ~1.200 bytes** | Multiple Packets | **Fast** | **Standard:** Works fine, but requires ACKs and more processing. |
