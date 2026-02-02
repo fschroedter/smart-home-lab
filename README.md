@@ -5,12 +5,20 @@
 This repository contains various components and packages developed for projects using the **ESP32-C6 1.47" Touch Display**. These packages should be compatible with other microcontrollers as well.
 
 ## ESPHome
-- [Display Driver JD9853](doc/display_driver_JD9853.md)
-- [gfx_blend Component](doc/gfx_blend_component.md)
+- [Package - Display Driver JD9853](/doc/display_driver_JD9853.md)
+- [Component - GFX Blend](/doc/component_gfx_blend.md)
+- [Component - Web Server Routes](/doc/component_web_server_routes.md)
+  
+---
+
+- Touch Driver AXS5106L Component (https://github.com/widget/esphome-components)
+- IMU (QMI8658 Sensor) Component (https://github.com/dala318/esphome-qmi8658)
+
   
 
 ---
 TBD:
-- Extended Web-Server Component
-- SD-Card Component
-- SD-Card Logger Component
+- Component - display for JD9853 display drivers
+- Component - SD card 
+- Component - SD card logger
+
