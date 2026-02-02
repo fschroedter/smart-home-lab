@@ -46,6 +46,7 @@
 | **GPIO 15** | LCD_DC            | LCD Data/Command Selection   |
 | **GPIO 22** | LCD_RST           | LCD Reset                    |
 | **GPIO 23** | LCD_BL            | LCD Backlight PWM Dimming    |
+----
 
 ### Touch Panel
 | GPIO        | LCD Pin           | Function                         |
@@ -55,6 +56,7 @@
 | **GPIO 20** | TP_RST            | Touch Panel Reset                |
 | **GPIO 21** | TP_INT            | Touch Panel Interrupt            |
 
+----
 ### SD Card
 | GPIO        | LCD Pin           | Function                 |
 | :---        | :---              | :---                     |
@@ -63,3 +65,12 @@
 | **GPIO 3**  | SD_MISO           | SPI Data In / MOSI       |
 | **GPIO 4**  | SD_CS             | Chip Select SD           |
 
+----
+
+### IMU (QMI8658 Sensor)
+| GPIO        | LCD Pin           | Function              |
+| :---        | :---              | :---                  |
+| **GPIO 18** | IMU_SDA           | Servial Data (I2C)    |
+| **GPIO 19** | IMU_SCL           | Clock (I2C)           |
+| **GPIO 5**  | IMU_INT1          | Interrupt 1           |
+| **GPIO 6**  | IMU_INT2          | Interrupt 2           | 
