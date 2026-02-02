@@ -178,7 +178,7 @@ This recommendation is based on the standard **Maximum Segment Size (MSS)** of a
 2. **HTTP Body:** Your actual data (JSON, text, or binary).
 
 ### Network Behavior and Impact
-| HTTP Body Size | Network Behavior | Impact |
+| HTTP&nbsp;Body&nbsp;Size | Network&nbsp;Behavior | Impact |
 | :--- | :--- | :--- |
 | **<&nbsp;150 bytes** | Tiny Packet |  **Ineffizcient:** The header (approx. 100 Bytes) is almost as large as the data. High CPU load per byte.  |
 | **150&nbsp;–&nbsp;1.000&nbsp;bytes** | Single Packet |  **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
