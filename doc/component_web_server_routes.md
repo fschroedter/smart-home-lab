@@ -178,11 +178,11 @@ This recommendation is based on the standard **Maximum Segment Size (MSS)** of a
 2. **HTTP Body:** Your actual data (JSON, text, or binary).
 
 ### Network Behavior and Impact
-| HTTP Body Size | Network Behavior |Performance| Impact |
-| :--- | :--- | :--- | :--- |
-| **< 150 bytes** | Tiny Packet | **Slow (Overhead)**| **Ineffizcient:** The header (approx. 100 Bytes) is almost as large as the data. High CPU load per byte.  |
-| **150 - 1.000 bytes** | Single Packet | **Fast**| **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
-| **< ~1.200 bytes** | Single Packet | **Ultra Fast**| **Optimal:** Lowest latency, minimal CPU usage. |
-| **>  ~1.200 bytes** | Multiple Packets | **Fast** | **Standard:** Works fine, but requires ACKs and more processing. |
-| **> ~16.384 bytes** | Large Payload | **Moderate** | **Caution:** Risk of heap fragmentation; use streaming for larger data. |
+| HTTP Body Size | Network Behavior | Impact |
+| :--- | :--- | :--- |
+| **<&nbsp;150 bytes** | Tiny Packet |  **Ineffizcient:** The header (approx. 100 Bytes) is almost as large as the data. High CPU load per byte.  |
+| **150&nbsp;–&nbsp;1.000&nbsp;bytes** | Single Packet |  **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
+| **1000 – ~1.200&nbsp;bytes** | Single Packet |  **Optimal:** Lowest latency, minimal CPU usage. |
+| **>  ~1.200 bytes** | Multiple Packets |  **Suboptimal:** Fragmentation: Higher overhead and latency due to multiple TCP segments and ACKs. |
+| **> ~16.384 bytes** | Large Payload |  **Caution:** Risk of heap fragmentation; use streaming for larger data. |
 
