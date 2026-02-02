@@ -3,10 +3,10 @@
 
 [← Back to Overview](../README.md)
 
-# EPSHome Component Gfx_blend
+# GFX Blend Component
 
 
-## Usage
+## Sample
 ```yaml
 external_components:  
   - source: github://fschroedter/smart-home-lab
@@ -25,6 +25,23 @@ display:
 
     // Draw rectangle with border radius=20
     gfx.filled_rectangle( 20, 20, 150, 150, 20, Color(0, 255, 0) );
+```
+
+## General Usage
+```cpp
+static Gfx gfx(&it);
+
+gfx.with({E1, E2}, [&](){ ... });
+
+gfx.with(
+  gfx.source_as_bg({E1, E2}),
+  [&]() { ... }
+);
+
+gfx.with(
+  gfx.no_bg({E1, E2}),
+  [&]() { ... }
+);
 ```
 
 ## More examples
@@ -71,3 +88,4 @@ gfx.with(
 gfx.with( GfxEffects::image_mask( id(my_mask), 10, 10 ) );
 gfx.filled_rectangle( 10, 10, 100, 100, Color(255, 0, 0) );
 ```
+
