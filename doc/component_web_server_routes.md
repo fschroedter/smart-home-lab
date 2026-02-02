@@ -43,7 +43,7 @@ Note: All set header functions follow the "First Come, First Served" principle. 
 
 
 ## How-To
-Set up [Web Server Route](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component as described below.
+Set up [Web Server Routes](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component as described below.
 ```yaml
 # Requires Web Server Component
 web_server:
@@ -112,7 +112,7 @@ web_server_routes:
         it.set_content_type("text/plain");
         it.set_content_disposition("inline");
 
-        // "Web Server Route" encoded as byte array (ASCII)
+        // "Web Server Routes" encoded as byte array (ASCII)
         const uint8_t sample_data[] = {
             0x57, 0x65, 0x62, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,  // W e b (space) S e r v e r
             0x20, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73                     // (space) R o u t e s
@@ -180,7 +180,7 @@ This recommendation is based on the standard **Maximum Segment Size (MSS)** of a
 ### Network Behavior and Impact
 | HTTP Body Size | Network Behavior |Performance| Impact |
 | :--- | :--- | :--- | :--- |
-| **< 150 bytes** | Tiny Packet | **Slow (Overhead)**| **Ineffizcient:** The header (approx. 100 Byte) is almost as large as the data. High CPU load per byte.  |
+| **< 150 bytes** | Tiny Packet | **Slow (Overhead)**| **Ineffizcient:** The header (approx. 100 Bytes) is almost as large as the data. High CPU load per byte.  |
 | **150 - 1.000 bytes** | Single Packet | **Fast**| **Suboptimal:** Secure and fast, but WLAN airtime is not used efficiently (lots of idle time). |
 | **< ~1.200 bytes** | Single Packet | **Ultra Fast**| **Optimal:** Lowest latency, minimal CPU usage. |
 | **>  ~1.200 bytes** | Multiple Packets | **Fast** | **Standard:** Works fine, but requires ACKs and more processing. |
