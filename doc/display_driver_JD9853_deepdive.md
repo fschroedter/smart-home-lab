@@ -1,19 +1,18 @@
+[← Back to LCD Display Driver JD9853](../doc/display_driver_JD9853.md)
+
 # 🛠️ Deep Dive: JD9853 Initialization Sequence
-
-[← Back to Dispay Driver JD9853](../doc/display_driver_JD9853.md)
-
 This deep dive covers the technical details how the **JD9853** display driver can be implemented within the [ESPHome ili9xxx component](https://esphome.io/components/display/ili9xxx/).
 
 
 ## LCD Displays with JD9853 Display Driver
-These devices use a JD9853 display driver:
+These devices use JD9853 display driver:
 - Waveshare (WS-30499),  LCD-Display 1.47inch Touch Display (without micro controller)
 - Waveshare (WS-31202), **ESP32-S3** 1.47inch Touch Display Development Board
 - Waveshare (WS-31201), **ESP32-C6** 1.47inch Touch Display Development Board
 
 
 ## Init Sequence
-Using  plattform [ili9xxx](https://esphome.io/components/display/ili9xxx/) in display with a custom `init_sequence`.
+Using  plattform [ili9xxx](https://esphome.io/components/display/ili9xxx/) with a custom `init_sequence`:
 
 
 ```yaml
@@ -102,27 +101,41 @@ void ILI9XXXDisplay::init_lcd_(const uint8_t *addr) {
   }
 }
 ```
-
 As a result, the `ILI9XXXDisplay::init_lcd_` method now initiats function calls for the `init_sequence` entry `[0x11, 0xFF, 0x7E, 0, 0, ..., 0]` as follows:
 
 
-```
-│ Processed commands/data    │ cmd , x   , num_args  │ Called functions                         │
-├────────────────────────────┼───────────────────────┤──────────────────────────────────────────┤
-│ 0x11, 0x80,                │ 0x11, 0x80, 0         │ send_command(0x11, addr, 0) + delay(150) │
-│ 0xFF, 0x7E, 0, 0, ... , 0  │ 0xFF, 0x7E, 126       │ send_command(0xFF, addr, 126)            │
-```
+| Processed *addr bytes                      | cmd    | x       | num_args     | Called functions                           |
+| :----------------------------------------- | :----  | :----   |:------------ | :----------------------------------------- |
+| `0x11` `0x80`                              | `0x11` | `0x80`  | 0            | send_command(`0x11`, addr, 0) + delay(150)   |
+| `0xFF` `0x7E` `0x00` `0x00` ...  `0x00`    | `0xFF`(*) | `0x7E`  | `126`        | send_command(`0xFF`, addr, 126)              |
 
 
-Since `0xFF` is not a valid command, both the command itself and its arguments are discarded.
+
+(*) Since `0xFF` is not a valid command, both the command itself and its arguments are discarded.
 
 ## Set Panel (0xC1)
 
 The **Set Panel (0xC1)** command is specifically tailored to reconfigure the display's internal hardware logic—including **source scan output, gate scan output, inverse-mode, and color order**—to achieve native compatibility with the standard ESPHome ILI9XXX component.
 
-While the Waveshare demo and official manufacturer examples utilize a different initialization sequence, this optimized version handles all parameters at the hardware level. Consequently, manual adjustments such as color_order, transform, or rotation are no longer required for a standard portrait orientation (USB port at the bottom).
+Consequently, using the adjusted init sequence, manual adjustments such as `color_order`, `transform`, or `rotation` are no longer required for a standard portrait orientation (USB port at the bottom).
+
 
 ```
+      +------+------+------+------+------+-------+------+------+
+ Bit: |  D7  |  D6  |  D5  |  D4  |  D3  |  D2   |  D1  |  D0  |
+      +------+------+------+------+------+-------+------+------+
+          \____________/      |      |       |       |      |
+             Reserved         SS     GS     REV     CFHR    -
+```
+| Bit | Name | Description / Settings |
+| :--- | :--- | :--- |
+| D4 | SS_PANEL | **Source Scan Direction (Horizontal)**<br>0: S1 -> S240 (Normal)<br>1: S240 -> S1 (Flipped) |
+| D3 | GS_PANEL | **Gate Scan Direction (Vertical)**<br>0: G1 -> G320 (Top -> Bottom)<br>1: G320 -> G1 (Bottom -> Top) |
+| D2 | REV_PANEL | **Display Mode (Polarization)**<br>0: Normal Black Panel<br>1: Normal White Panel |
+| D1 | CFHR | **Color Filter Horizontal Alignment**<br>0: RGB Alignment \<R1\>\<G1\>\<B1\><br>1: BGR Alignment \<B1\>\<G1\>\<R1\> |
+| D0 | --- | Reserved / Not used |
+
+<!-- ```
 ================================================================================
 COMMAND [0xC1]: SETPANEL (Set Panel Related Register)
 ================================================================================
@@ -146,11 +159,25 @@ D1    | CFHR            | Color Filter Horizontal Alignment
 ------|-----------------|-------------------------------------------------------
 D0    | ---             | Reserved / Not used
 ================================================================================   
-```
+``` -->
 
 ## Built-In Self Test Pattern (0xC2)
 The **Built-In Self Test Pattern (0xC2)** command provides a series of display patterns.
 ```
+      +------+------+------+------+------+------+------+------+
+ Bit: |  D7  |  D6  |  D5  |  D4  |  D3  |  D2  |  D1  |  D0  |
+      +------+------+------+------+------+------+------+------+
+         |     \_________/     |      |      \_____________/
+      Unused     LNPERLVL    Unused   EN       TEST_PATTERN
+   
+```
+| Bit | Name | Description / Settings |
+| :--- | :--- | :--- |
+| D6:D5 | LNPERLVL[1:0] | **Number of lines for each gray level (V94)**<br>00: 1 line \| 01: 2 lines<br>10: 4 lines (Default) \| 11: 8 lines |
+| D3 | TEST_PAT_EN | **BIST Pattern Generator Enable**<br>0: Disable (Default)<br>1: Enable |
+| D2:D0 | TEST_PATTERN | **Pattern Selection [2:0]**<br>0: 8 Color Bars \| 4: Green Screen<br>1: Black Screen \| 5: Blue Screen<br>2: White Screen \| 6: Gray Gradient (Y-dir)<br>3: Red Screen \| 7: Border (R), Inner (B/Black) |
+
+<!-- ```
 ================================================================================
 COMMAND [0xC2]: SET_BIST (Built-In Self Test Pattern Setting)
 ================================================================================
@@ -171,7 +198,7 @@ D2:D0 | TEST_PATTERN    | Pattern Selection [2:0]
       |                 |   2: White Screen    6: Gray Gradient (Y-dir)
       |                 |   3: Red Screen      7: Border (R), Inner (B/Black)
 ================================================================================
-```
+``` -->
 
 ## Sources
  - [Osptek - Initial code](https://www.osptek.com/products/1/15/485)
