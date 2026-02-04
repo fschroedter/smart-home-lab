@@ -54,11 +54,11 @@ void WebServerRoutes::setup() {
   server->addHandler(new RouteHandler(this));
 }
 
-void WebServerRoutes::send(const std::string &data) {
+esp_err_t WebServerRoutes::send(const std::string &data) {
   return this->send_binary(reinterpret_cast<const uint8_t *>(data.c_str()), data.length());
 }
 
-void WebServerRoutes::send(const char *format, ...) {
+esp_err_t WebServerRoutes::send(const char *format, ...) {
   va_list arg;
   va_start(arg, format);
 
@@ -68,48 +68,55 @@ void WebServerRoutes::send(const char *format, ...) {
   int len = vsnprintf(nullptr, 0, format, arg_copy);
   va_end(arg_copy);  // Clean up the copy
 
+  esp_err_t res = ESP_OK;
+
   if (len > 0) {
     // Create a buffer with enough space
     std::vector<char> buf(len + 1);
     vsnprintf(buf.data(), buf.size(), format, arg);
 
-    this->send(std::string(buf.data()));
+    res = this->send(std::string(buf.data()));
   }
 
   va_end(arg);  // Clean up variadic arguments and ensure stack stability.
+
+  return res;
 }
 
-void WebServerRoutes::send_binary(const uint8_t *data, size_t len) {
+esp_err_t WebServerRoutes::send_binary(const uint8_t *data, size_t len) {
+  // if (!this->check_request_()) {
   if (!this->check_request_() || len == 0) {
-    return;
+    return ESP_FAIL;
   }
 
-  uint8_t max_retries = 5;
+  uint8_t max_retries = 15;
   esp_err_t res = ESP_OK;
 
   for (uint8_t i = 0; i < max_retries; i++) {
     res = httpd_resp_send_chunk(this->current_req_, reinterpret_cast<const char *>(data), len);
 
     if (res == ESP_OK) {
-      return;
+      return ESP_OK;
     }
 
-    if (res == ESP_ERR_HTTPD_RESP_SEND) {
+    if (res == ESP_ERR_HTTPD_RESP_SEND || res == ESP_ERR_TIMEOUT) {
       // Buffer full: Wait briefly and give the TCP stack time for ACKs.
-      ESP_LOGW(TAG, "Buffer full (chunk jam), waiting for TCP ACKs... (Attempt %d/%d)", i + 1, max_retries);
+      ESP_LOGW(TAG, "Buffer full (chunk congestion), waiting for TCP ACKs... (Attempt %d/%d)", i + 1, max_retries);
 
-      // 30ms is a good value to wait for Wi-Fi acknowledgement
-      delay(30);
+      // Give the RTOS time to handle other tasks (WLAN stack). 30ms is a good value to wait for Wi-Fi acknowledgement
+      vTaskDelay(pdMS_TO_TICKS(30));
       continue;
     } else {
       // Critical error (e.g., client closed socket)
-      ESP_LOGE(TAG, "Critical transmission error: %s", esp_err_to_name(res));
-      break;
+      ESP_LOGE(TAG, "Critical send error: %s", esp_err_to_name(res));
+      this->reset_request_context_();
+      return res;  // Immediate termination upon loss of connection
     }
   }
 
   // If we arrive here, the sending failed.
   this->reset_request_context_();
+  return res;
 }
 
 void WebServerRoutes::set_header(const std::string &field, const std::string &value) {
@@ -142,12 +149,13 @@ void WebServerRoutes::set_header(const std::string &field, const std::string &va
     res = httpd_resp_set_hdr(this->current_req_, field_ptr, value_ptr);
   }
 
-  ESP_LOGD(TAG, "Header [registered]: %s [ %s ]", field_ptr, value_ptr)
-
   if (res != ESP_OK) {
+    ESP_LOGW(TAG, "Header [error]: %s [ %s ]", field_ptr, value_ptr);
     ESP_LOGW(TAG, "Set header failed: %s", esp_err_to_name(res));
     return;
   }
+
+  ESP_LOGD(TAG, "Header [registered]: %s [ %s ]", field_ptr, value_ptr);
 }
 
 void WebServerRoutes::set_content_size(size_t size) {  //
@@ -242,6 +250,7 @@ void WebServerRoutes::handle_native_request_(httpd_req_t *req, RouteEntry &route
   if (!route.content_type.empty()) {
     this->set_header("Content-Type", route.content_type.c_str());
   }
+
   if (!route.content_disposition.empty()) {
     this->set_header("Content-Disposition", route.content_disposition.c_str());
   }
