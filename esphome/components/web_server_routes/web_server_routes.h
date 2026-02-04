@@ -97,26 +97,23 @@ class WebServerRoutes : public Component {
       this->matched_route_ = nullptr;
     }
 
-    RouteEntry *get_matched_route() { return this->matched_route_; }
-
    protected:
     WebServerRoutes *parent_;
     mutable RouteEntry *matched_route_{nullptr};
   };
 
   void set_web_server_base(web_server_base::WebServerBase *base) { this->base_ = base; }
-
   void add_route(const std::string &path, const std::string &key, route_action_t action,
                  const std::string &default_type, const std::string &content_disposition);
 
-  bool is_transmitting() { return this->is_busy_; }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
-
   void setup() override;
 
-  void send(const std::string &data);
-  void send(const char *format, ...);  // Sends a formatted string using variadic arguments
-  void send_binary(const uint8_t *data, size_t len);
+  bool is_transmitting() { return this->is_busy_; }
+
+  esp_err_t send(const std::string &data);
+  esp_err_t send(const char *format, ...);  // Sends a formatted string using variadic arguments
+  esp_err_t send_binary(const uint8_t *data, size_t len);
 
   void set_header(const std::string &field, const std::string &value);  // Sets HTTP headers
   void set_content_size(size_t size);
@@ -133,10 +130,10 @@ class WebServerRoutes : public Component {
   bool iequals_(const std::string &a, const std::string &b);  // case insensitive equal
 
   web_server_base::WebServerBase *base_;
-  std::vector<RouteEntry> routes_;
-  bool is_busy_{false};
   httpd_req_t *current_req_{nullptr};
   RouteEntry *current_route_{nullptr};
+  std::vector<RouteEntry> routes_;
+  bool is_busy_{false};
 
   /**
    * Stores HTTP headers with stable memory addresses.
