@@ -6,18 +6,27 @@
 
 # Web Server Routes
 
-The ESPHome Component [Web Server Routes](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component provides a **easy-to-use** abstraction layer over the ESP-IDF HTTP Server for ESP32 devices. It is designed for efficient data delivery and memory safety while **simplifying complex server tasks** into a developer-friendly interface.
+The ESPHome Component [Web Server Routes](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component provides a **easy-to-use** abstraction layer over the ESP-IDF HTTP Server for ESP32 devices. It is designed for efficient data delivery and memory safety while **simplifying complex server tasks** into a developer-friendly interface, making it particularly suitable for **standalone environments operating without Home Assistant**.
 
 It enables **sending data of any size** by streaming it in segments (e.g., from an SD card) rather than buffering the entire payload. This allows for the delivery of massive files without exceeding the ESP32's limited RAM, as the component handles the heavy lifting of sequential packet transmission through straightforward functions like `send(message)`.
 
+```yaml
+# Example minimal configuration entry
+# Endpoint: http://<HOSTNAME>/download
+
+web_server_routes:
+  routes:
+    - lambda: |-        
+        it.send("Hello World!");
+```
 ## Configuration variables
 
-
-
-* **path**: (Optional, Default: "download") Global base URL path for the web server.
+* **id**: (Optional): The main component ID is the global C++ reference used to call methods like `set_responder` from other lambdas.
+* **path**: (Optional, Default: "download") Base URL path for the web server.
 * **routes**: (Required) List of individual route definitions.
+    * **id** (Optional): The route_id is a unique string used by set_responder to identify and update the logic of a specific route at runtime.
     * **key**: (Optional) Unique identifier. Routes without a key act as a fallback if no specific key-based route matches.
-    * **path**: (Optional, Default: "download") Overrides the global path for this specific route.
+    * **path**: (Optional) Overrides the root path for this specific route.
     * **subpath**: (Optional) An additional path segment appended to the base route. It defines a nested URL structure (e.g., `/route/subpath`)
     * **content_type**: (Optional) Sets the initial HTTP header. Example: `application/json` or `text/plain` 
     * **content_disposition**: (Optional) Example: `inline`,  `attachment` or `attachment; filename=data.txt`
@@ -28,17 +37,19 @@ It enables **sending data of any size** by streaming it in segments (e.g., from 
 
 ## Lambda API functions
 
-* `send(message)`: Sends data to the client. Supports variadic (printf-style) formatting.
-* `send_binary(*data, len)`: Sends raw binary data to the client. Useful for transmitting files, buffers, or non-text payloads.
-* `set_header(field, value)`: Registers an HTTP header. Only applied if the attribute was not set in YAML or previously in the lambda.
+* `send(value: string)`: Sends data to the client. Supports variadic (printf-style) formatting.
+* `send_binary(data: uint8_t*, len: int)`: Sends raw binary data to the client. Useful for transmitting files, buffers, or non-text payloads.
+* `set_header(field: string, value: string)`: Registers an HTTP header. Only applied if the attribute was not set in YAML or previously in the lambda.
 
-* `set_content_disposition(value)`: A wrapper for `set_header` to define both the disposition mode and the filename.
-* `set_content_type(value)`: A wrapper for `set_header()` to define the Content-Type
-* `set_filename(value)`: Convenience function to set the Content-Disposition header with a specific filename.
+* `set_content_size(size: int)`: A wrapper for `set_header()` that sets the HTTP `Content-Length` header, allowing clients to determine the total download size in advance and enabling progress tracking, validation, and more efficient resource management.
+* `set_content_type(value: string)`: A wrapper for `set_header()` to define the Content-Type. 
+* `set_content_disposition(value: string)`: A wrapper for `set_header` to define both the disposition mode and a filename.
+* `set_filename(value: string)`: Convenience function and a wrapper for `set_header()` to set the `Content-Disposition` header with a specific filename.
 
-* `get_query_param(key)`: Retrieves the value of a specific parameter from the URL query string (e.g., ?file=data.txt).
-* `get_key_value()`: Returns the string value of the "key" attribute defined in the YAML for the current route.
-
+* `get_query_param(field: string)`: Retrieves the value of a specific parameter from the URL query string (e.g., ?file=data.txt).
+* `get_key_value()`: Returns the string value of the `key` attribute defined in the YAML for the current route. This function serves as a wrapper for `get_query_param()`, specifically retrieving the parameter that matches the configured key.
+* `set_responder(route_id: string, callback: function)`: Assigns a dynamic responder function to a route by its string-based route `id`.
+  
 Note: All set header functions follow the "First Come, First Served" principle. HTTP headers defined in YAML take precedence over subsequent changes in the lambda.
 
 
@@ -52,26 +63,20 @@ external_components:
   - source: github://fschroedter/smart-home-lab  
     components: [ web_server_routes ]
 
-```
-
-## Examples
-
-### Basic Example
-**Endpoint provided by this configuration:**<br>
-`GET http://<HOSTNAME>.local/download`
-
-```yaml
+# Endpoint: http://<HOSTNAME>/download
 web_server_routes:
   routes:
     - lambda: |-        
         it.send("Hello World!");
 ```
 
+## Configuration Examples
+
 ### Example with Download Filename
 This sample sets the HTTP Header 'Content-Disposition' with 'attachment' and custom filename that indicate to the web browser to download this file.
 
 **Endpoint provided by this configuration:**<br>
-`GET http://<HOSTNAME>.local/infos/uptime`
+`GET http://<HOSTNAME>/infos/uptime`
 
 ```yaml
 web_server_routes:
@@ -84,14 +89,13 @@ web_server_routes:
         it.send("Uptime: %lu ms", millis());
 ```
 
-
-### Advanced Example
+### Advanced Data Handling & Custom Header Implementation
 Creating mutiple routes with various configurations.
 
 **Endpoints provided by this configuration:**<br>
-- `GET http://<HOSTNAME>.local/info/hello-world`<br>
-- `GET http://<HOSTNAME>.local/download/binary?date=2026_02_03`<br>
-- `GET http://<HOSTNAME>.local/info/transfer?json-data=1&filename=my_data.json` 
+- `GET http://<HOSTNAME>/info/hello-world`<br>
+- `GET http://<HOSTNAME>/download/binary?date=2026_02_03`<br>
+- `GET http://<HOSTNAME>/info/transfer?json-data=1&filename=my_data.json` 
 
 ```yaml
 web_server_routes:
@@ -144,6 +148,38 @@ web_server_routes:
         it.send("\"sensor_active\": true");
         it.send("}");
 ```
+### Dynamic Responder Assignment
+This example shows how to programmatically define route behavior on demand. By using `set_responder`, you can inject different response logics into a pre-defined route whenever needed.
+
+**Endpoints provided by this configuration:**<br>
+- `GET http://<HOSTNAME>/download`
+
+```yaml
+web_server_routes:
+  id: my_extened_webserver
+  routes:
+    - id: my_route
+
+switch:
+  - platform: template
+    name: "Web Route Response Selector"
+    id: route_selector
+    optimistic: true
+    
+    # Define or update the logic for "my_route" at runtime
+    on_turn_on:
+      lambda: |-
+        id(my_extened_webserver).set_responder("my_route", [](auto &it) {
+          it.send("Response A: System is ACTIVE");
+        });
+        
+    # Overwrite the logic for "my_route" with a different behavior
+    on_turn_off:
+      lambda: |-
+        id(my_extened_webserver).set_responder("my_route", [](auto &it) {
+          it.send("Response B: System is STANDBY");
+        });
+```
 
 
 ## Handling Long Loops and Large Responses
@@ -154,7 +190,7 @@ web_server_routes:
 
 When generating long responses within a loop (e.g., iterating over hundreds of log entries), you must prevent the code from blocking the CPU for too long. If the loop runs without interruption, the **Task Watchdog Timer (TWDT)** might trigger a reboot, or the Wi-Fi stack may lose its connection.
 
-To keep the system stable, include a small delay or yield to allow the ESP32 to handle background tasks:
+To ensure system stability, use `delay(1)` to provide sufficient time for background tasks or `yield()` to pet the watchdog and prevent timeouts.
 
 ```cpp
 // Periodically yield to system tasks to prevent reboots and disconnects
@@ -166,6 +202,20 @@ for (int i = 0; i < 10000; i++) {
     }
 }
 ``` 
+
+<!-- **Preventing Watchdog Resets with yield():**
+```cpp
+// Periodically yield to system tasks to prevent reboots and disconnects
+for (int i = 0; i < 10000; i++) {
+    it.send("Data row content...");
+    
+    if (i % 100 == 0) { 
+        delay(1);   // Keeps Wi-Fi alive and feeds TWDT
+    } else {      
+        yield();    // Otherwise just pet the watchdog and handle background tasks
+    }
+}
+```  -->
 
 ## Performance & Packet Size Optimization
 
