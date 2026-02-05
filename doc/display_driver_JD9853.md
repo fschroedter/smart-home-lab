@@ -29,13 +29,13 @@ Selecting the appropriate `init_sequence` for the **JD9853** is essential. While
 ##  Custom Initialization Sequence
 The initialization sequence includes a workaround that uses [`init_sequence`](https://github.com/fschroedter/smart-home-lab/blob/main/includes/init_sequence_JD9853.yaml) processing to insert a delay required for correct configuration. For more details, see [deep dive](display_driver_JD9853_deepdive.md).
 
-For more advanced setup options, check out the official **ESPHome** configuration guide for [ILI9xxx TFT displays](https://esphome.io/components/display/ili9xxx/) page.
+For more advanced setup options, check out the official ESPHome configuration guide for [ILI9xxx TFT displays](https://esphome.io/components/display/ili9xxx/) page.
 ```yaml
 # Load this package to extend the display with a custom init sequence for the JD9853 display drivers
 packages:
   remote_package_files:
     url: https://github.com/fschroedter/smart-home-lab
-    files: [ includes/init_sequence_JD9853.yaml ]
+    files: [ packages/init_sequence_JD9853.yaml ]
 
 
 display:
@@ -54,4 +54,7 @@ display:
       offset_height: 0
     invert_colors: false
 ```
-Note: This example uses the pinout from [Waveshare ESP32-C6 1.47" Touch Display](./pinout_esp32-c6_touch.md).
+Note: This example uses the pinout from [Waveshare ESP32-C6 1.47" Touch Display](./board_esp32-c6_touch.md).
+
+ 
+See here for [complete example](https://github.com/fschroedter/smart-home-lab/blob/main/examples/init_sequence_jd9853_driver/init_sequence_jd9853_driver.yaml).
