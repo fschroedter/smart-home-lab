@@ -35,7 +35,7 @@ light:
 packages:
   remote_package_files:
     url: https://github.com/fschroedter/smart-home-lab
-    files: [ includes/init_sequence_JD9853.yaml ]
+    files: [ packages/init_sequence_JD9853.yaml ]
 
 display:
   - platform: ili9xxx
