@@ -104,10 +104,10 @@ void ILI9XXXDisplay::init_lcd_(const uint8_t *addr) {
 As a result, the `ILI9XXXDisplay::init_lcd_` method now initiats function calls for the `init_sequence` entry `[0x11, 0xFF, 0x7E, 0, 0, ..., 0]` as follows:
 
 
-| Processed *addr bytes                      | cmd    | x       | num_args     | Called functions                           |
-| :----------------------------------------- | :----  | :----   |:------------ | :----------------------------------------- |
-| `0x11` `0x80`                              | `0x11` | `0x80`  | 0            | send_command(`0x11`, addr, 0) + delay(150)   |
-| `0xFF` `0x7E` `0x00` `0x00` ...  `0x00`    | `0xFF`(*) | `0x7E`  | `126`        | send_command(`0xFF`, addr, 126)              |
+| Processed *addr bytes                      | cmd                  | x       | num_args     | Called functions                           |
+| :----------------------------------------- | :----                | :----   |:------------ | :----------------------------------------- |
+| `0x11` `0x80`                              | `0x11`               | `0x80`  | 0            | send_command(`0x11`, addr, 0) + delay(150)   |
+| `0xFF` `0x7E` `0x00` `0x00` ...  `0x00`    | `0xFF`<sup>(*)</sup> | `0x7E`  | `126`        | send_command(`0xFF`, addr, 126)              |
 
 
 
@@ -121,19 +121,19 @@ Consequently, using the adjusted init sequence, manual adjustments such as `colo
 
 
 ```
-      +------+------+------+------+------+-------+------+------+
- Bit: |  D7  |  D6  |  D5  |  D4  |  D3  |  D2   |  D1  |  D0  |
-      +------+------+------+------+------+-------+------+------+
-          \____________/      |      |       |       |      |
-             Reserved         SS     GS     REV     CFHR    -
+      +------+------+------+------+------+------+------+------+
+ Bit: |  D7  |  D6  |  D5  |  D4  |  D3  |  D2  |  D1  |  D0  |
+      +------+------+------+------+------+------+------+------+
+                              |      |      |      |      
+                              SS     GS    REV    CFHR    
 ```
 | Bit | Name | Description / Settings |
-| :--- | :--- | :--- |
-| D4 | SS_PANEL | **Source Scan Direction (Horizontal)**<br>0: S1 -> S240 (Normal)<br>1: S240 -> S1 (Flipped) |
-| D3 | GS_PANEL | **Gate Scan Direction (Vertical)**<br>0: G1 -> G320 (Top -> Bottom)<br>1: G320 -> G1 (Bottom -> Top) |
-| D2 | REV_PANEL | **Display Mode (Polarization)**<br>0: Normal Black Panel<br>1: Normal White Panel |
-| D1 | CFHR | **Color Filter Horizontal Alignment**<br>0: RGB Alignment \<R1\>\<G1\>\<B1\><br>1: BGR Alignment \<B1\>\<G1\>\<R1\> |
-| D0 | --- | Reserved / Not used |
+| :---   | :---      | :--- |
+| D4     | SS_PANEL  | **Source Scan Direction (Horizontal)**<br>0: S1 -> S240 (Normal)<br>1: S240 -> S1 (Flipped) |
+| D3     | GS_PANEL  | **Gate Scan Direction (Vertical)**<br>0: G1 -> G320 (Top -> Bottom)<br>1: G320 -> G1 (Bottom -> Top) |
+| D2     | REV_PANEL | **Display Mode (Polarization)**<br>0: Normal Black Panel<br>1: Normal White Panel |
+| D1     | CFHR      | **Color Filter Horizontal Alignment**<br>0: RGB Alignment <br>1: BGR Alignment  |
+| D0     | ---       | Reserved / Not used |
 
 <!-- ```
 ================================================================================
@@ -154,8 +154,8 @@ D2    | REV_PANEL       | Display Mode (Polarization)
       |                 |   1: Normal White Panel
 ------|-----------------|-------------------------------------------------------
 D1    | CFHR            | Color Filter Horizontal Alignment
-      |                 |   0: RGB Alignment <R1><G1><B1>
-      |                 |   1: BGR Alignment <B1><G1><R1>
+      |                 |   0: RGB Alignment
+      |                 |   1: BGR Alignment
 ------|-----------------|-------------------------------------------------------
 D0    | ---             | Reserved / Not used
 ================================================================================   
@@ -167,15 +167,80 @@ The **Built-In Self Test Pattern (0xC2)** command provides a series of display p
       +------+------+------+------+------+------+------+------+
  Bit: |  D7  |  D6  |  D5  |  D4  |  D3  |  D2  |  D1  |  D0  |
       +------+------+------+------+------+------+------+------+
-         |     \_________/     |      |      \_____________/
-      Unused     LNPERLVL    Unused   EN       TEST_PATTERN
-   
+               \_________/            |      \_____________/
+                 LNPERLVL             |        TEST_PATTERN
+                                 TEST_PAT_EN 
 ```
-| Bit | Name | Description / Settings |
-| :--- | :--- | :--- |
-| D6:D5 | LNPERLVL[1:0] | **Number of lines for each gray level (V94)**<br>00: 1 line \| 01: 2 lines<br>10: 4 lines (Default) \| 11: 8 lines |
-| D3 | TEST_PAT_EN | **BIST Pattern Generator Enable**<br>0: Disable (Default)<br>1: Enable |
-| D2:D0 | TEST_PATTERN | **Pattern Selection [2:0]**<br>0: 8 Color Bars \| 4: Green Screen<br>1: Black Screen \| 5: Blue Screen<br>2: White Screen \| 6: Gray Gradient (Y-dir)<br>3: Red Screen \| 7: Border (R), Inner (B/Black) |
+<table>
+  <thead>
+    <tr>
+      <th align="left">Bit</th>
+      <th align="left">Name</th>
+      <th align="left">Description / Settings</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>D6:D5</td>
+      <td>LNPERLVL</td>
+      <td>
+        <strong>Number of lines for each gray level [1:0]</strong><br>
+        <table>
+          <tr>
+            <td>00: 1 line</td>
+            <td>01: 2 lines</td>
+          </tr>
+          <tr>
+            <td>10: 4 lines (Default)</td>
+            <td>11: 8 lines</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td>D3</td>
+      <td>TEST_PAT_EN</td>
+      <td>
+        <strong>BIST Pattern Generator Enable</strong><br>
+        0: Disable (Default)<br>
+        1: Enable
+      </td>
+    </tr>
+    <tr>
+      <td>D2:D0</td>
+      <td>TEST_PATTERN</td>
+      <td>
+        <strong>Pattern Selection [2:0]</strong><br>
+        <table>
+          <tr>
+            <td>000: 8 Color Bars</td>
+            <td>100: Green Screen</td>
+          </tr>
+          <tr>
+            <td>001: Black Screen</td>
+            <td>101: Blue Screen</td>
+          </tr>
+          <tr>
+            <td>010: White Screen</td>
+            <td>110: Gray Gradient (Y-dir)</td>
+          </tr>
+          <tr>
+            <td>011: Red Screen</td>
+            <td>111: Border (R), Inner (B/Black)</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!--
+| Bit      | Name              | Description / Settings   |
+| :---     | :---              | :---                     |
+| D6:D5    | LNPERLVL          | **Number of lines for each gray level [1:0]**<br>00: 1 line &nbsp; \| &nbsp; 01: 2 lines<br>10: 4 lines (Default) &nbsp; \| &nbsp; 11: 8 lines |
+| D3       | TEST_PAT_EN       | **BIST Pattern Generator Enable**<br>0: Disable (Default)<br>1: Enable |
+| D2:D0    | TEST_PATTERN      | **Pattern Selection [2:0]**<br>000: 8 Color Bars &nbsp; \| &nbsp; 100: Green Screen<br>001: Black Screen  &nbsp; \| &nbsp; 101: Blue Screen<br>010: White Screen  &nbsp; \| &nbsp; 110: Gray Gradient (Y-dir)<br>011: Red Screen &nbsp; \| &nbsp; 111: Border (R), Inner (B/Black) | 
+-->
 
 <!-- ```
 ================================================================================
@@ -183,7 +248,7 @@ COMMAND [0xC2]: SET_BIST (Built-In Self Test Pattern Setting)
 ================================================================================
 Bit   | Name            | Description / Settings
 ------|-----------------|-------------------------------------------------------
-D6:D5 | LNPERLVL[1:0]   | Number of lines for each gray level (V94)
+D6:D5 | LNPERLVL[1:0]   | Number of lines for each gray level
       |                 |   00: 1 line    | 01: 2 lines
       |                 |   10: 4 lines (Default)
       |                 |   11: 8 lines
