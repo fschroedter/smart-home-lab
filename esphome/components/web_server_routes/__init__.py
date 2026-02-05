@@ -7,6 +7,7 @@ DEPENDENCIES = ["web_server_base"]
 
 web_server_routes_ns = cg.esphome_ns.namespace("web_server_routes")
 WebServerRoutes = web_server_routes_ns.class_("WebServerRoutes", cg.Component)
+RouteEntry = web_server_routes_ns.struct("RouteEntry")
 
 CONF_ROUTES = "routes"
 CONF_PATH = "path"
@@ -57,7 +58,8 @@ def _validate_routes(config):
 
 ROUTE_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_LAMBDA): cv.lambda_,
+        cv.Optional(CONF_ID): cv.declare_id(RouteEntry),
+        cv.Optional(CONF_LAMBDA): cv.lambda_,
         cv.Optional(CONF_PATH): cv.string,
         cv.Optional(CONF_SUBPATH): cv.string,
         cv.Optional(CONF_KEY, default=""): cv.string,
@@ -93,17 +95,8 @@ async def to_code(config):
     config[CONF_ROUTES].sort(key=lambda x: (x.get(CONF_KEY, "") == "",))
 
     for route in config[CONF_ROUTES]:
-        lambda_ = await cg.process_lambda(
-            route[CONF_LAMBDA],
-            [(WebServerRoutes.operator("ref"), "it")],
-            return_type=cg.void,
-        )
 
-        disposition = ""
-        if CONF_FILENAME in route:
-            disposition = f'attachment; filename="{route[CONF_FILENAME]}"'
-        elif CONF_CONTENT_DISPOSITION in route:
-            disposition = route[CONF_CONTENT_DISPOSITION]
+        route_id = str(route[CONF_ID]) if CONF_ID in route else ""
 
         path = route.get(CONF_PATH) or config[CONF_PATH]
         subpath = route.get(CONF_SUBPATH)
@@ -111,12 +104,29 @@ async def to_code(config):
 
         key = route.get(CONF_KEY, "")
 
+        type = route.get(CONF_CONTENT_TYPE, "")
+
+        disposition = ""
+        if CONF_FILENAME in route:
+            disposition = f'attachment; filename="{route[CONF_FILENAME]}"'
+        elif CONF_CONTENT_DISPOSITION in route:
+            disposition = route[CONF_CONTENT_DISPOSITION]
+
+        lambda_conf = route.get(CONF_LAMBDA)
+        lambda_code = None
+
+        lambda_code = await cg.process_lambda(
+            lambda_conf,
+            [(WebServerRoutes.operator("ref"), "it")],
+            return_type=cg.void,
+        )
         cg.add(
             var.add_route(
+                route_id,
                 final_path,
                 key,
-                lambda_,
-                route[CONF_CONTENT_TYPE],
+                type,
                 disposition,
+                lambda_code or cg.RawExpression("nullptr"),
             )
         )
