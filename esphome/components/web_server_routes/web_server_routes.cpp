@@ -24,9 +24,18 @@
 namespace esphome {
 namespace web_server_routes {
 
-void WebServerRoutes::add_route(const std::string &path, const std::string &key, route_action_t action,
-                                const std::string &content_type, const std::string &content_disposition) {
-  this->routes_.push_back({path, key, std::move(action), content_type, content_disposition});
+void WebServerRoutes::add_route(const std::string &route_id, const std::string &path, const std::string &key,
+                                const std::string &content_type, const std::string &content_disposition,
+                                RouteEntry::route_action_t action) {
+  this->routes_.push_back({
+      route_id,
+      path,
+      key,
+      content_type,
+      content_disposition,
+      std::move(action),
+      nullptr,  // Internal responder state, defaults to null
+  });
 }
 
 void WebServerRoutes::setup() {
@@ -52,6 +61,16 @@ void WebServerRoutes::setup() {
   }
 
   server->addHandler(new RouteHandler(this));
+}
+
+void WebServerRoutes::set_responder(const std::string &route_id, RouteEntry::responder_t func) {  //
+  for (auto &route : this->routes_) {
+    if (route.route_id == route_id) {
+      route.active_responder = func;
+      return;
+    }
+  }
+  ESP_LOGW(TAG, "No route found with key: %s", route_id.c_str());
 }
 
 esp_err_t WebServerRoutes::send(const std::string &data) {
@@ -255,7 +274,12 @@ void WebServerRoutes::handle_native_request_(httpd_req_t *req, RouteEntry &route
     this->set_header("Content-Disposition", route.content_disposition.c_str());
   }
 
-  route.action(*this);
+  // Execute the dynamic responder if set, otherwise fallback to the static YAML action
+  if (route.active_responder != nullptr) {
+    route.active_responder(*this);
+  } else {
+    route.action(*this);
+  }
 
   esp_err_t res = httpd_resp_send_chunk(req, nullptr, 0);
   if (res != ESP_OK) {

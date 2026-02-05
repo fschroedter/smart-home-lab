@@ -29,16 +29,18 @@ static const char *const TAG = "web_server_routes";
 
 class WebServerRoutes;
 
-using route_action_t = std::function<void(WebServerRoutes &)>;
-
 class WebServerRoutes : public Component {
  public:
   struct RouteEntry {
+    using route_action_t = std::function<void(WebServerRoutes &)>;
+    using responder_t = std::function<void(WebServerRoutes &)>;
+    std::string route_id;
     std::string path;
     std::string key;
-    route_action_t action;
     std::string content_type;
     std::string content_disposition;
+    route_action_t action;
+    responder_t active_responder{nullptr};  // Field for the dynamic responder
   };
 
   class RouteHandler : public esphome::web_server_idf::AsyncWebHandler {
@@ -82,8 +84,8 @@ class WebServerRoutes : public Component {
         return;
       }
 
-// --- Count active sockets --------
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
+      // Log active socket count only when debug logging is enabled
       const size_t max_fds = 16;
       int client_fds[max_fds];
       size_t client_count = max_fds;
@@ -91,7 +93,7 @@ class WebServerRoutes : public Component {
       if (httpd_get_client_list(net_req->handle, &client_count, client_fds) == ESP_OK) {
         ESP_LOGD(TAG, "Active sockets: %zu", client_count);
       }
-#endif
+#endif  // ESPHOME_LOG_LEVEL_DEBUG
 
       this->parent_->handle_native_request_(net_req, *(this->matched_route_));
       this->matched_route_ = nullptr;
@@ -99,16 +101,17 @@ class WebServerRoutes : public Component {
 
    protected:
     WebServerRoutes *parent_;
-    mutable RouteEntry *matched_route_{nullptr};
+    mutable RouteEntry *matched_route_{nullptr};  // mutable allows assignment within the const method canHandle
   };
 
   void set_web_server_base(web_server_base::WebServerBase *base) { this->base_ = base; }
-  void add_route(const std::string &path, const std::string &key, route_action_t action,
-                 const std::string &default_type, const std::string &content_disposition);
-
+  void add_route(const std::string &route_id, const std::string &path, const std::string &key,
+                 const std::string &content_type, const std::string &content_disposition,
+                 RouteEntry::route_action_t action = nullptr);
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
   void setup() override;
 
+  void set_responder(const std::string &route_id, RouteEntry::responder_t func);
   bool is_transmitting() { return this->is_busy_; }
 
   esp_err_t send(const std::string &data);
