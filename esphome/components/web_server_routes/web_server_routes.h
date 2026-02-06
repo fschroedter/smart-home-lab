@@ -19,6 +19,7 @@
 #include <esp_http_server.h>
 #include <functional>
 #include <list>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,14 +34,28 @@ class WebServerRoutes : public Component {
  public:
   struct RouteEntry {
     using route_action_t = std::function<void(WebServerRoutes &)>;
-    using responder_t = std::function<void(WebServerRoutes &)>;
-    std::string route_id;
+
+    RouteEntry(std::string id, std::string path, std::string key, std::string c_type, std::string c_disp,
+               route_action_t action)
+        : id(id), path(path), key(key), content_type(c_type), content_disposition(c_disp), action_(std::move(action)) {}
+
+    std::string id;
     std::string path;
     std::string key;
     std::string content_type;
     std::string content_disposition;
-    route_action_t action;
-    responder_t active_responder{nullptr};  // Field for the dynamic responder
+    route_action_t action_;
+
+    void set_responder(route_action_t action) { this->action_ = std::move(action); }
+    void set_content_type(std::string c_type) { this->content_type = c_type; }
+    void set_content_disposition(std::string c_disposition) { this->content_disposition = c_disposition; }
+    void set_filename(std::string filename) { this->content_disposition = "attachment; filename=" + filename; }
+
+    void execute_(WebServerRoutes &it) {
+      if (this->action_) {
+        this->action_(it);
+      }
+    }
   };
 
   class RouteHandler : public esphome::web_server_idf::AsyncWebHandler {
@@ -49,7 +64,8 @@ class WebServerRoutes : public Component {
 
     bool canHandle(esphome::web_server_idf::AsyncWebServerRequest *request) const override {
       std::string url = request->url();
-      for (auto &route : this->parent_->routes_) {
+      for (auto &route_ptr : this->parent_->routes_) {
+        auto &route = *route_ptr;
         if (url == route.path || url == route.path + "/") {
           if (route.key.empty() || request->hasParam(route.key)) {
             // Log handled route
@@ -105,13 +121,9 @@ class WebServerRoutes : public Component {
   };
 
   void set_web_server_base(web_server_base::WebServerBase *base) { this->base_ = base; }
-  void add_route(const std::string &route_id, const std::string &path, const std::string &key,
-                 const std::string &content_type, const std::string &content_disposition,
-                 RouteEntry::route_action_t action = nullptr);
+  RouteEntry *add_route(RouteEntry *route);
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
   void setup() override;
-
-  void set_responder(const std::string &route_id, RouteEntry::responder_t func);
   bool is_transmitting() { return this->is_busy_; }
 
   esp_err_t send(const std::string &data);
@@ -131,11 +143,12 @@ class WebServerRoutes : public Component {
   void reset_request_context_();
   void handle_native_request_(httpd_req_t *req, RouteEntry &route);
   bool iequals_(const std::string &a, const std::string &b);  // case insensitive equal
+  std::optional<std::string> has_header_(const std::string &field) const;
 
   web_server_base::WebServerBase *base_;
   httpd_req_t *current_req_{nullptr};
   RouteEntry *current_route_{nullptr};
-  std::vector<RouteEntry> routes_;
+  std::vector<std::unique_ptr<RouteEntry>> routes_;
   bool is_busy_{false};
 
   /**
