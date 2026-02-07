@@ -21,39 +21,50 @@ web_server_routes:
 ```
 ## Configuration variables
 
-* **id**: (Optional): The main component ID is the global C++ reference used to call methods like `set_responder` from other lambdas.
-* **path**: (Optional, Default: "download") Base URL path for the web server.
-* **routes**: (Required) List of individual route definitions.
-    * **id** (Optional): The route_id is a unique string used by set_responder to identify and update the logic of a specific route at runtime.
-    * **key**: (Optional) Unique identifier. Routes without a key act as a fallback if no specific key-based route matches.
-    * **path**: (Optional) Overrides the root path for this specific route.
-    * **subpath**: (Optional) An additional path segment appended to the base route. It defines a nested URL structure (e.g., `/route/subpath`)
-    * **content_type**: (Optional) Sets the initial HTTP header. Example: `application/json` or `text/plain` 
-    * **content_disposition**: (Optional) Example: `inline`,  `attachment` or `attachment; filename=data.txt`
-    * **filename**: (Optional) Define the filename in the HTTP Header. This attribute cannot be used together with `content_disposition`.
-    * **lambda**: (Required) The C++ code block executed when the route is called.
+* **path**: (Optional, string): Base URL path for the web server. Default: `download`
+* **routes** (Required): List of individual route definitions.
+    * **id** (Optional, string): This unique is used by `set_responder()` to identify and update a specific route at runtime.
+    * **key** (Optional, string): A query key can be used as filter as well as  carrier for data evaluated with `get_key_value()`. Routes without a key act as a fallback if no specific key-based route matches.
+    * **path** (Optional, string): Overrides the global path for this specific route.
+    * **cache-control** (Optional, string): Sets HTTP Header Cache-Control. Default: `no-cache`
+    * **connection** (Optional, string): Sets the HTTP header to `close` by default to prevent socket exhaustion on the ESP32 by ensuring connections are not kept idle.
+    * **content_type** (Optional, string): Sets the HTTP header `Content-Type`. Example: `application/json` or `text/plain` 
+    * **content_disposition** (Optional, string): Sets the HTTP header `Content-Disposition` Examples for valid values: `inline`,  `attachment` or `attachment; filename=data.txt`
+    * **filename** (Optional, string) Define the filename in the HTTP Header. This attribute cannot be used together with `content_disposition`.
+    * **header** (Optional, list): Defines single or a list of HTTP Headers; entries in this list will override any conflicting named header attributes configurations.
+    * **unique_header_fields** (Optional, boolean): Prevents sending headers with same field. Default is `true`
+    * **lambda** (Required, lambda): The C++ code block executed when the route is called.
 
 
+## Lambda functions
 
-## Lambda API functions
+### Funktions for Internal Lambda and within `set_responder()`
 
 * `send(value: string)`: Sends data to the client. Supports variadic (printf-style) formatting.
-* `send_binary(data: uint8_t*, len: int)`: Sends raw binary data to the client. Useful for transmitting files, buffers, or non-text payloads.
-* `set_header(field: string, value: string)`: Registers an HTTP header. Only applied if the attribute was not set in YAML or previously in the lambda.
+* `send_binary(data: char*, len: int)`: Sends raw binary data to the client. Useful for transmitting files, buffers, or non-text payloads.
+* `send_header(field: string, value: string)`: Registers an HTTP header. Only applied if the attribute was not set in YAML or previously in the lambda.
+* `send_content_size(size: int)`: A wrapper for `set_header()` that sets the HTTP `Content-Length` header, allowing clients to determine the total download size in advance and enabling progress tracking, validation, and more efficient resource management.
+* `send_content_type(value: string)`: A wrapper for `set_header()` to define the Content-Type. 
+* `send_content_disposition(value: string)`: A wrapper for `set_header` to define both the Content-Disposition mode and a filename.
+* `send_filename(value: string)`: Convenience function and a wrapper for `send_content_disposition()` to set the `Content-Disposition` header with a specific filename.
+* `get_key_value()`: Returns the string value of the `key` attribute defined in the YAML for the current route. This function serves as a wrapper for `get_query_param()`, specifically retrieving the parameter that matches the configured `key`.
+* `get_query_param(field: string)`: Retrieves the value of a specific parameter from the URL query string (e.g., ?file=data.txt).
 
-* `set_content_size(size: int)`: A wrapper for `set_header()` that sets the HTTP `Content-Length` header, allowing clients to determine the total download size in advance and enabling progress tracking, validation, and more efficient resource management.
+### Functions for External Lambdas
+* `set_responder(callback: function)`: Assigns a dynamic responder function to a route by its string-based route `id`.
+* `set_header(header: string)`: Adds a new or updates an existing HTTP header field.  
+* `set_header(field: string, value: string)`: Adds a new or updates an existing HTTP header field.  
+* `add_header(header: string)`:  Adds a of HTTP header.  
+* `add_headers(headers: list)`:  Adds a bunch of HTTP headers.  
 * `set_content_type(value: string)`: A wrapper for `set_header()` to define the Content-Type. 
-* `set_content_disposition(value: string)`: A wrapper for `set_header` to define both the disposition mode and a filename.
+* `set_content_disposition(value: string)`: A wrapper for `set_header()` to define both the Content-Disposition mode and a filename.
 * `set_filename(value: string)`: Convenience function and a wrapper for `set_header()` to set the `Content-Disposition` header with a specific filename.
 
-* `get_query_param(field: string)`: Retrieves the value of a specific parameter from the URL query string (e.g., ?file=data.txt).
-* `get_key_value()`: Returns the string value of the `key` attribute defined in the YAML for the current route. This function serves as a wrapper for `get_query_param()`, specifically retrieving the parameter that matches the configured key.
-* `set_responder(route_id: string, callback: function)`: Assigns a dynamic responder function to a route by its string-based route `id`.
-  
-Note: All set header functions follow the "First Come, First Served" principle. HTTP headers defined in YAML take precedence over subsequent changes in the lambda.
+Note: All defined headers are processed successively; with the default setting `unique_header_fields: true`, only the first instance of each header field is sent.
 
 
-## How-To
+
+## How-To Setup
 Set up [Web Server Routes](https://github.com/fschroedter/smart-home-lab/tree/main/esphome/components/web_server_routes) component as described below.
 ```yaml
 # Requires Web Server Component
@@ -102,19 +113,17 @@ web_server_routes:
   path: info
   routes:
     # Generic routes (no key) act as a fallback and are processed only if no specific key-based route matches.
-    - subpath: hello-world      # Sub path is added to global path
+    - path: download            # Override global path
       content_type: application/json
       content_disposition: inline
       lambda: |-
         it.send("{\"message\": \"Hello World!\"}");
 
     # Send data with send_binary()
-    - key: date
-      path: download            # Override global path
-      subpath: binary           # Sub path is added to path
+    - key: date      
       lambda: |-
-        it.set_content_type("text/plain");
-        it.set_content_disposition("inline");
+        it.send_content_type("text/plain");
+        it.send_content_disposition("inline");
 
         // "Web Server Routes" encoded as byte array (ASCII)
         const uint8_t sample_data[] = {
@@ -122,23 +131,25 @@ web_server_routes:
             0x20, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73                     // (space) R o u t e s
         };
 
-        // Transmit a raw byte buffer as a binary response to the client
-        it.send_binary(sample_data, sizeof(sample_data));
+        // Filesize allows the browser to estimate download progression
+        int data_length = sizeof(sample_data);
+        it.send_content_size(data_length);
 
-        // Extract the specified query parameter from the request and send its value as the response
-        std::string date = it.get_query_param("date");
-        it.send("\nDate: %s", date);
+        // Transmit a raw byte buffer as a binary response to the client
+        it.send_binary(sample_data, data_length);
 
     # Specific key-based route
     - key: json-data
       path: info/transfer   # Override global path
+      content_type: application/json; charset=utf-8
       lambda: |-
         // Set Content-Type header
-        it.set_header("content_type", "application/json; charset=utf-8");
+        it.send_header("X-Data", "json");
 
         // Set dynamic filename from query parameter
+        // Extract the specified query parameter from the request and set dynamic filename
         std::string my_filename = it.get_query_param("filename");
-        it.set_filename(my_filename);
+        it.send_filename(my_filename);
 
         // Sending the JSON body in chunks
         it.send("{");
@@ -156,7 +167,6 @@ This example shows how to programmatically define route behavior on demand. By u
 
 ```yaml
 web_server_routes:
-  id: my_extened_webserver
   routes:
     - id: my_route
 
@@ -169,17 +179,104 @@ switch:
     # Define or update the logic for "my_route" at runtime
     on_turn_on:
       lambda: |-
-        id(my_extened_webserver).set_responder("my_route", [](auto &it) {
+        id(my_route).set_responder([](auto &it) {
           it.send("Response A: System is ACTIVE");
         });
         
     # Overwrite the logic for "my_route" with a different behavior
     on_turn_off:
       lambda: |-
-        id(my_extened_webserver).set_responder("my_route", [](auto &it) {
+        id(my_route).set_responder([](auto &it) {
           it.send("Response B: System is STANDBY");
         });
 ```
+### Lambda Scope and Variable Validity
+In this example, a route with the ID `my_route` is defined and subsequently modified by the on_boot lambda. 
+```yaml
+# Use the external lambda from on_boot for demonstration
+esphome:
+  name: web-server-routes-demo
+  on_boot:
+    priority: -100  # Very late execution
+    then:
+      - lambda: |-                                          #   <-- External lambda
+          id(my_route).set_header("X-Value-Attr: B");       
+
+          id(my_route).set_responder([](&it) {              
+            it.send_header("X-Value-Send: Y");
+            it.send_header("X-Value-Attr: C");
+            it.send("Updated World");
+          });
+
+# Lambda in YAML configuration
+web_server_routes:
+  routes:
+    - id: my_route
+      path: info/headers
+      filename: data.txt
+      header: "X-Value-Attr: A"
+      lambda: |-                                             #  <-- Internal lambda
+        it.send_header("X-Value-Send: X");
+        it.send("Hello World");
+```
+The header `X-Value-Attr: C` is not sent because `unique_header_fields` is set to `true` by default, which prevents multiple headers of the same type from being dispatched. The resulting configuration produces the following output:
+
+**Endpoint:**<br>
+`GET http://<HOSTNAME>/info/headers`
+
+**Header:**<br>
+``X-Value-Attr: B``<br>
+``X-Value-Send: Y``
+
+**Content**:<br>
+"Updated World"
+
+
+### Example: Send BMP screenshot as image file
+// More Details comming soon.
+```yaml
+web_server_routes:
+  id: my_web_server_routes
+  routes:
+    - id: my_image_route
+      path: download/image
+      content_type: image/bmp
+      filename: screenshot.bmp
+
+      lambda: |-
+        auto display_ptr = id(my_display);        
+        my_stream_ptr->reset();        
+
+        while (my_stream_ptr->get_bmp_chunk([&it](const char *data, size_t len) {
+          it.send_binary(data, len);
+        })) {
+          vTaskDelay(pdMS_TO_TICKS(1));          
+        }
+
+display:  
+  - platform: ...
+    lambda: |-
+      it.image(0, 0, id(my_image));
+      
+      // Take snapshot      
+      if (my_stream_ptr == nullptr) {
+          extern esphome::bmp::StreamDisplay *my_stream_ptr; 
+          my_stream_ptr = new esphome::bmp::StreamDisplay(id(my_display), 688);          
+      }
+
+      if (!my_stream_ptr->has_snapshot()) {
+        if (!my_stream_ptr->take_snapshot()) {
+              ESP_LOGE("HTTP", "Snapshot failed (Out of Memory?)");
+            return;
+        }
+      }
+```
+
+### Example: Send Files from SD card
+// TODO
+
+
+
 
 
 ## Handling Long Loops and Large Responses
@@ -216,6 +313,8 @@ for (int i = 0; i < 10000; i++) {
     }
 }
 ```  -->
+
+
 
 ## Performance & Packet Size Optimization
 

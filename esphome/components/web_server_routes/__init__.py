@@ -67,7 +67,6 @@ ROUTE_SCHEMA = cv.Schema(
             default=[
                 "Cache-Control: no-cache",
                 "Connection: close",
-                "X-Custom-Header: ABC",
             ],
         ): cv.ensure_list(cv.string),
         cv.Optional(CONF_UNIQUE_HEADER_FIELDS, default=True): cv.boolean,
