@@ -124,7 +124,7 @@ esp_err_t WebServerRoutes::send_binary(const char *data, size_t len) {
   return res;
 }
 
-void WebServerRoutes::set_header(const std::string &field, const std::string &value) {
+void WebServerRoutes::send_header(const std::string &field, const std::string &value) {
   if (!this->check_request_()) {
     return;
   }
@@ -169,19 +169,19 @@ void WebServerRoutes::set_header(const std::string &field, const std::string &va
   ESP_LOGD(TAG, "Header [registered]: %s [ %s ]", field_ptr, value_ptr);
 }
 
-void WebServerRoutes::set_content_size(size_t size) {  //
-  this->set_header("Content-Length", std::to_string(size));
+void WebServerRoutes::send_content_size(size_t size) {  //
+  this->send_header("Content-Length", std::to_string(size));
 }
 
-void WebServerRoutes::set_content_type(const std::string &type) {  //
-  this->set_header("Content-Type", type);
+void WebServerRoutes::send_content_type(const std::string &type) {  //
+  this->send_header("Content-Type", type);
 }
 
-void WebServerRoutes::set_content_disposition(const std::string &disposition) {  //
-  this->set_header("Content-Disposition", disposition);
+void WebServerRoutes::send_content_disposition(const std::string &disposition) {  //
+  this->send_header("Content-Disposition", disposition);
 }
 
-void WebServerRoutes::set_filename(const std::string &filename) {
+void WebServerRoutes::send_filename(const std::string &filename) {
   ESP_LOGI(TAG, "filename: %s", filename.c_str());
   ESP_LOGI(TAG, filename.c_str());
 
@@ -189,7 +189,7 @@ void WebServerRoutes::set_filename(const std::string &filename) {
 
   ESP_LOGI(TAG, "value: %s", value.c_str());
   ESP_LOGI(TAG, value.c_str());
-  this->set_content_disposition(value);
+  this->send_content_disposition(value);
 }
 
 std::string WebServerRoutes::get_query_param(const std::string &key) {
@@ -255,15 +255,10 @@ void WebServerRoutes::handle_native_request_(httpd_req_t *req, RouteEntry &route
   this->current_route_ = &route;
   this->is_busy_ = true;
 
-  this->set_header("Cache-Control", "no-cache");
-  this->set_header("Connection", "close");
-
-  if (!route.content_type.empty()) {
-    this->set_header("Content-Type", route.content_type.c_str());
-  }
-
-  if (!route.content_disposition.empty()) {
-    this->set_header("Content-Disposition", route.content_disposition.c_str());
+  for (auto &item : route.headers) {
+    if (!item.second.empty()) {
+      this->send_header(item.first, item.second);
+    }
   }
 
   route.execute_(*this);
