@@ -16,6 +16,7 @@ CONF_CONTENT_DISPOSITION = "content_disposition"
 CONF_QUERY_KEY = "key"
 CONF_WEB_SERVER_BASE_ID = "web_server_base_id"
 CONF_FILENAME = "filename"
+CONF_UNIQUE_HEADER_FIELDS = "unique_header_fields"
 
 
 def normalize_path(path: str) -> str:
@@ -58,6 +59,7 @@ ROUTE_SCHEMA = cv.Schema(
         cv.Optional(CONF_PATH): cv.string,
         cv.Optional(CONF_QUERY_KEY, default=""): cv.string,
         cv.Optional(CONF_CONTENT_TYPE, default=""): cv.string,
+        cv.Optional(CONF_UNIQUE_HEADER_FIELDS, default=True): cv.boolean,
         cv.Exclusive(CONF_CONTENT_DISPOSITION, "disposition"): cv.string,
         cv.Exclusive(CONF_FILENAME, "disposition"): cv.string,
     }
@@ -89,6 +91,9 @@ async def to_code(config):
     config[CONF_ROUTES].sort(key=lambda x: (x.get(CONF_QUERY_KEY, "") == "",))
 
     for route in config[CONF_ROUTES]:
+
+        unique_hf = route[CONF_UNIQUE_HEADER_FIELDS]
+        cg.add(var.set_unique_header_fields(unique_hf))
 
         route_id = route[CONF_ID]
         path = normalize_path(route[CONF_PATH])

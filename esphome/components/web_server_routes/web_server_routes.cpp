@@ -59,8 +59,8 @@ void WebServerRoutes::setup() {
   server->addHandler(new RouteHandler(this));
 }
 
-esp_err_t WebServerRoutes::send(const std::string &data) {
-  return this->send_binary(reinterpret_cast<const uint8_t *>(data.c_str()), data.length());
+esp_err_t WebServerRoutes::send(const std::string &data) {  //
+  return this->send_binary(data.c_str(), data.length());
 }
 
 esp_err_t WebServerRoutes::send(const char *format, ...) {
@@ -88,7 +88,7 @@ esp_err_t WebServerRoutes::send(const char *format, ...) {
   return res;
 }
 
-esp_err_t WebServerRoutes::send_binary(const uint8_t *data, size_t len) {
+esp_err_t WebServerRoutes::send_binary(const char *data, size_t len) {
   // if (!this->check_request_()) {
   if (!this->check_request_() || len == 0) {
     return ESP_FAIL;
@@ -98,7 +98,7 @@ esp_err_t WebServerRoutes::send_binary(const uint8_t *data, size_t len) {
   esp_err_t res = ESP_OK;
 
   for (uint8_t i = 0; i < max_retries; i++) {
-    res = httpd_resp_send_chunk(this->current_req_, reinterpret_cast<const char *>(data), len);
+    res = httpd_resp_send_chunk(this->current_req_, data, len);
 
     if (res == ESP_OK) {
       return ESP_OK;
@@ -129,12 +129,17 @@ void WebServerRoutes::set_header(const std::string &field, const std::string &va
     return;
   }
 
-  // Prevent duplicate headers
   for (size_t i = 0; i < current_headers_.size(); i += 2) {
     if (auto current_value = has_header_(field); current_value) {
-      ESP_LOGI(TAG, "HTTP Header field already set: '%s: %s' (new value '%s' will not be applied)", field.c_str(),
-               current_value->c_str(), value.c_str());
-      return;
+      if (this->use_unique_header_fields_) {
+        // Prevent duplicate headers
+        ESP_LOGI(TAG, "HTTP Header field already set: '%s: %s' (New value '%s' will not be applied)", field.c_str(),
+                 current_value->c_str(), value.c_str());
+        return;
+      } else {
+        ESP_LOGI(TAG, "HTTP Header field already set: '%s: %s' (Add new value '%s')", field.c_str(),
+                 current_value->c_str(), value.c_str());
+      }
     }
   }
 
@@ -149,10 +154,10 @@ void WebServerRoutes::set_header(const std::string &field, const std::string &va
   esp_err_t res = ESP_OK;
 
   // Register with ESP-IDF
-  if (strcasecmp(field.c_str(), "Content-Type")) {
-    res = httpd_resp_set_type(this->current_req_, value_ptr);
-  } else {
+  if (strcasecmp(field_ptr, "Content-Type")) {
     res = httpd_resp_set_hdr(this->current_req_, field_ptr, value_ptr);
+  } else {
+    res = httpd_resp_set_type(this->current_req_, value_ptr);
   }
 
   if (res != ESP_OK) {
@@ -169,11 +174,11 @@ void WebServerRoutes::set_content_size(size_t size) {  //
 }
 
 void WebServerRoutes::set_content_type(const std::string &type) {  //
-  this->set_header("Content-Type", type.c_str());
+  this->set_header("Content-Type", type);
 }
 
 void WebServerRoutes::set_content_disposition(const std::string &disposition) {  //
-  this->set_header("Content-Disposition", disposition.c_str());
+  this->set_header("Content-Disposition", disposition);
 }
 
 void WebServerRoutes::set_filename(const std::string &filename) {

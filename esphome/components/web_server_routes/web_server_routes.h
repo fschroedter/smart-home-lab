@@ -128,7 +128,7 @@ class WebServerRoutes : public Component {
 
   esp_err_t send(const std::string &data);
   esp_err_t send(const char *format, ...);  // Sends a formatted string using variadic arguments
-  esp_err_t send_binary(const uint8_t *data, size_t len);
+  esp_err_t send_binary(const char *data, size_t len);
 
   void set_header(const std::string &field, const std::string &value);  // Sets HTTP headers
   void set_content_size(size_t size);
@@ -137,12 +137,12 @@ class WebServerRoutes : public Component {
   void set_filename(const std::string &filename);
   std::string get_query_param(const std::string &key);
   std::string get_key_value();
+  void set_unique_header_fields(const bool state) { this->use_unique_header_fields_ = state; }
 
  protected:
   bool check_request_();
   void reset_request_context_();
   void handle_native_request_(httpd_req_t *req, RouteEntry &route);
-  bool iequals_(const std::string &a, const std::string &b);  // case insensitive equal
   std::optional<std::string> has_header_(const std::string &field) const;
 
   web_server_base::WebServerBase *base_;
@@ -150,6 +150,7 @@ class WebServerRoutes : public Component {
   RouteEntry *current_route_{nullptr};
   std::vector<std::unique_ptr<RouteEntry>> routes_;
   bool is_busy_{false};
+  bool use_unique_header_fields_{true};
 
   /**
    * Stores HTTP headers with stable memory addresses.
