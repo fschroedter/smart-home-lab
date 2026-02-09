@@ -90,11 +90,10 @@ This sample sets the HTTP Header 'Content-Disposition' with 'attachment' and cus
 `GET http://<HOSTNAME>/infos/uptime`
 
 ```yaml
-web_server_routes:
-  path: infos
+web_server_routes:  
   routes:
     - filename: uptime.txt
-      subpath: uptime
+      path: infos/uptime
       lambda: |-        
         // Sends a formatted string using variadic arguments (printf-style).
         it.send("Uptime: %lu ms", millis());
@@ -104,8 +103,8 @@ web_server_routes:
 Creating mutiple routes with various configurations.
 
 **Endpoints provided by this configuration:**<br>
-- `GET http://<HOSTNAME>/info/hello-world`<br>
-- `GET http://<HOSTNAME>/download/binary?date=2026_02_03`<br>
+- `GET http://<HOSTNAME>/info`<br>
+- `GET http://<HOSTNAME>/info?date=2026_02_03`<br>
 - `GET http://<HOSTNAME>/info/transfer?json-data=1&filename=my_data.json` 
 
 ```yaml
@@ -113,14 +112,15 @@ web_server_routes:
   path: info
   routes:
     # Generic routes (no key) act as a fallback and are processed only if no specific key-based route matches.
-    - path: download            # Override global path
-      content_type: application/json
+    # GET /info...
+    - content_type: application/json
       content_disposition: inline
       lambda: |-
         it.send("{\"message\": \"Hello World!\"}");
 
-    # Send data with send_binary()
-    - key: date      
+    # Send data with send_binary 
+    # GET /info?date=...
+    - key: date
       lambda: |-
         it.send_content_type("text/plain");
         it.send_content_disposition("inline");
@@ -138,7 +138,8 @@ web_server_routes:
         // Transmit a raw byte buffer as a binary response to the client
         it.send_binary(sample_data, data_length);
 
-    # Specific key-based route
+    # Specific key-based route 
+    # GET /info/transfer?json-data=...
     - key: json-data
       path: info/transfer   # Override global path
       content_type: application/json; charset=utf-8
@@ -197,14 +198,12 @@ In this example, a route with the ID `my_route` is defined and subsequently modi
 esphome:
   name: web-server-routes-demo
   on_boot:
-    priority: -100  # Very late execution
     then:
       - lambda: |-                                          #   <-- External lambda
-          id(my_route).set_header("X-Value-Attr: B");       
-
+          id(my_route).set_header("X-My-Pet: Dog");
           id(my_route).set_responder([](&it) {              
-            it.send_header("X-Value-Send: Y");
-            it.send_header("X-Value-Attr: C");
+            it.send_header("X-Guard-Strength: 4");
+            it.send_header("X-My-Pet: Elephant");
             it.send("Updated World");
           });
 
@@ -214,43 +213,40 @@ web_server_routes:
     - id: my_route
       path: info/headers
       filename: data.txt
-      header: "X-Value-Attr: A"
+      header: "X-My-Pet: Cat"
       lambda: |-                                             #  <-- Internal lambda
-        it.send_header("X-Value-Send: X");
+        it.send_header("X-Guard-Strength: 1");
         it.send("Hello World");
 ```
-The header `X-Value-Attr: C` is not sent because `unique_header_fields` is set to `true` by default, which prevents multiple headers of the same type from being dispatched. The resulting configuration produces the following output:
+The header `X-My-Pet: Elephant` is not sent because `unique_header_fields` is set to `true` by default, which prevents multiple headers of the same type from being dispatched. The header `X-Guard-Strength: 1` is also not sent because the lambda intended for its transmission is overwritten by `set_responder()`.
+The resulting configuration produces the following output:
 
 **Endpoint:**<br>
 `GET http://<HOSTNAME>/info/headers`
 
 **Header:**<br>
-``X-Value-Attr: B``<br>
-``X-Value-Send: Y``
+``X-My-Pet: Dog``<br>
+``X-Guard-Strength: 4``
 
 **Content**:<br>
 "Updated World"
 
 
 ### Example: Send BMP screenshot as image file
-// More Details comming soon.
+Full example: [send_display_bmp.yaml](https://github.com/fschroedter/smart-home-lab/blob/main/examples/web_server_routes_component/send_display_bmp.yaml)
+
 ```yaml
 web_server_routes:
-  id: my_web_server_routes
   routes:
-    - id: my_image_route
-      path: download/image
+    - path: download/image
       content_type: image/bmp
       filename: screenshot.bmp
-
       lambda: |-
-        auto display_ptr = id(my_display);        
-        my_stream_ptr->reset();        
-
-        while (my_stream_ptr->get_bmp_chunk([&it](const char *data, size_t len) {
-          it.send_binary(data, len);
+        // Sending a part of the data that consists of data chunks
+        while (disp_stream->get_bmp_chunk([&it](const char *data, size_t len) {
+          it.send_binary(data, len);            
         })) {
-          vTaskDelay(pdMS_TO_TICKS(1));          
+          vTaskDelay(pdMS_TO_TICKS(1));
         }
 
 display:  
@@ -258,22 +254,24 @@ display:
     lambda: |-
       it.image(0, 0, id(my_image));
       
-      // Take snapshot      
-      if (my_stream_ptr == nullptr) {
-          extern esphome::bmp::StreamDisplay *my_stream_ptr; 
-          my_stream_ptr = new esphome::bmp::StreamDisplay(id(my_display), 688);          
+      // ----------------------------------------
+      // Take snapshot
+      if (disp_stream == nullptr) {
+        auto disp_ptr = id(my_display);
+        size_t chunk_size = 1152;
+        disp_stream = new DisplayStream(disp_ptr, chunk_size);
       }
 
-      if (!my_stream_ptr->has_snapshot()) {
-        if (!my_stream_ptr->take_snapshot()) {
-              ESP_LOGE("HTTP", "Snapshot failed (Out of Memory?)");
-            return;
+      if (disp_stream->needs_snapshot()) {        
+        if (!disp_stream->take_snapshot()) {
+          ESP_LOGE("HTTP", "Snapshot failed (Out of Memory?)");
+          return;
         }
       }
 ```
 
 ### Example: Send Files from SD card
-// TODO
+Soon ...
 
 
 

@@ -5,9 +5,9 @@
 This repository contains various components and packages developed for projects using the **ESP32-C6 1.47" Touch Display**. These packages should be compatible with other microcontrollers as well.
 
 ## ESPHome
-- [Package - Display Driver JD9853](/doc/display_driver_JD9853.md)
-- [Component - GFX Blend](/doc/component_gfx_blend.md)
-- [Component - Web Server Routes](/doc/component_web_server_routes.md)
+- [Display Driver JD9853](/doc/display_driver_JD9853.md)
+- [GFX Blend](/doc/component_gfx_blend.md)
+- [Web Server Routes](/doc/component_web_server_routes.md)
   
 ---
 
