@@ -1,0 +1,11 @@
+# ==============================
+# Web-Server
+# ==============================
+
+port: 80
+# auth:
+#   username: admin
+#   password: !secret web_password
+
+ota: false    # Over the air update via webserver interface
+version: 3    # Modern look & feel

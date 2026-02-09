@@ -1,0 +1,98 @@
+esphome:
+  name: web-server-routes-demo-bmp
+  friendly_name: Provide display buffer as BMP download
+  includes:
+    # Get display_stream.h from https://github.com/fschroedter/smart-home-lab/
+    - ../../libraries/display_stream.h
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+  level: Info
+
+ota: !include includes/ota.yaml
+api: !include includes/api.yaml
+wifi: !include includes/wifi.yaml
+image: !include includes/image.yaml
+web_server: !include includes/web_server.yaml
+
+external_components:  
+  - source: github://fschroedter/smart-home-lab
+    components: [ web_server_routes ]
+  
+web_server_routes:
+  routes:
+    - path: download/image
+      content_type: image/bmp
+      filename: image.bmp
+      lambda: |-  
+        disp_stream->start_streaming();
+
+        // Sending a part of the data that consists of data chunks
+        while (disp_stream->get_bmp_chunk([&it](const char *data, size_t len) {
+          it.send_binary(data, len);            
+        })) {
+          vTaskDelay(pdMS_TO_TICKS(1));
+        }
+
+
+# Backlight PWM
+output:
+  - platform: ledc
+    id: lcd_backlight
+    pin: GPIO23
+
+# Define a monochromatic, dimmable light for the backlight
+light:
+  - platform: monochromatic
+    output: lcd_backlight
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+spi:
+  clk_pin: GPIO1    # LCD_CLK
+  mosi_pin: GPIO2   # LCD_DIN
+
+packages:
+  remote_package_files:
+    url: https://github.com/fschroedter/smart-home-lab
+    files: [ packages/init_sequence_JD9853.yaml ]
+
+display:  
+  - platform: ili9xxx
+    model: CUSTOM
+    id: my_display
+    dc_pin:
+      number: GPIO15
+      ignore_strapping_warning: true
+    cs_pin: GPIO14
+    reset_pin: GPIO22
+    dimensions:
+      width: 172
+      height: 320
+      offset_width: 34
+      offset_height: 0
+    invert_colors: false
+    pixel_mode: 16bit
+    lambda: |-
+      it.image(0, 0, id(my_image));
+
+      // ---------------------------------------------------------------------
+      // Take snapshot
+      if (disp_stream == nullptr) {
+        auto disp_ptr = id(my_display);
+        size_t chunk_size = 1152;
+        disp_stream = new DisplayStream(disp_ptr, chunk_size);
+      }
+
+      if (disp_stream->needs_snapshot()) {        
+        if (!disp_stream->take_snapshot()) {
+          ESP_LOGE("HTTP", "Snapshot failed (Out of Memory?)");
+          return;
+        }
+      }      
+      // ---------------------------------------------------------------------

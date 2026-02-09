@@ -1,0 +1,10 @@
+# ==============================
+# WLAN Konfiguration
+# ==============================
+
+ssid: !secret wifi_ssid
+password: !secret wifi_password
+min_auth_mode: WPA3  # WPA2 Or WPA3 for ESP32 if all your networks support it
+# fast_connect: true
+power_save_mode: NONE
+

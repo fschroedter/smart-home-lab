@@ -1,0 +1,5 @@
+images:
+  - file: images/dog.png
+    id: my_image
+    type: RGB565
+   

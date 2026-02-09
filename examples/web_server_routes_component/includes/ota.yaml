@@ -1,0 +1,9 @@
+# ==============================
+# Allow Over-The-Air updates
+# ==============================
+- platform: esphome
+  id: ota_esp
+  password: !secret ota_password
+
+# Activation of OTA updates via web interface
+# - platform: web_server

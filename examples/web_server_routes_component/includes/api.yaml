@@ -1,0 +1,26 @@
+# ==============================
+# HA API
+# ==============================
+
+# EN
+# 'reboot_timeout' is the time the device waits before rebooting
+# if no client is connecting to the API. This is necessary because
+# low-level ESP functions sometimes report that the ESP is still connected to the
+# network when this is no longer the case –
+# a full reboot then resolves the issue.
+# Automatic reboot can be disabled by setting this value
+# to 0s. The default value is 15 minutes.
+
+# DE
+# 'reboot_timeout' ist Die Zeitspanne, die gewartet wird, bevor das Gerät neu gestartet wird, 
+# wenn sich kein Client mit der API verbindet. Dies ist nötig, weil die 
+# Low-Level-ESP-Funktionen manchmal melden, dass der ESP noch mit dem 
+# Netzwerk verbunden ist, obwohl dies in Wirklichkeit nicht mehr stimmt – 
+# ein vollständiger Neustart behebt das Problem dann.  
+# Der automatische Neustart kann deaktiviert werden, indem dieser Wert 
+# auf 0s gesetzt wird. Standardwert ist 15 Minuten.
+
+reboot_timeout: 0s  # No reboot on API failure / Kein Reboot bei API-Ausfall
+
+encryption:
+  key: !secret api_password
