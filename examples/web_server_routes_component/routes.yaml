@@ -1,0 +1,74 @@
+esphome:
+  name: web-server-routes-demo
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+  level: Info
+
+ota: !include includes/ota.yaml
+api: !include includes/api.yaml
+wifi: !include includes/wifi.yaml
+
+web_server:
+
+external_components:
+  - source: github://fschroedter/smart-home-lab
+    components: [ web_server_routes ]
+          
+web_server_routes:
+  path: info
+  routes:
+    # Generic routes (no key) act as a fallback and are processed only if no specific key-based route matches.
+    - content_type: application/json
+      content_disposition: inline
+      lambda: |-
+        it.send("{\"message\": \"Hello World!\"}");
+
+    # Send data with send_binary()
+    - key: date
+      lambda: |-
+        it.send_content_type("text/plain");
+        it.send_content_disposition("inline");
+
+        // "Web Server Routes" encoded as byte array (ASCII)
+        const uint8_t sample_data[] = {
+            0x57, 0x65, 0x62, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,  // W e b (space) S e r v e r
+            0x20, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73                     // (space) R o u t e s
+        };
+
+        // Filesize allows the browser to estimate download progression
+        int data_length = sizeof(sample_data);
+        it.send_content_size(data_length);
+
+        // Transmit a raw byte buffer as a binary response to the client
+        it.send_binary(sample_data, data_length);
+
+    # Specific key-based route
+    - key: json-data      # Override global path
+      path: info/transfer   # Override global path
+      content_type: application/json; charset=utf-8
+      lambda: |-
+        // Set Content-Type header
+        it.send_header("X-Data", "json");
+
+        // Set dynamic filename from query parameter
+        // Extract the specified query parameter from the request and set dynamic filename
+        std::string my_filename = it.get_query_param("filename");
+        it.send_filename(my_filename);
+
+        // Sending the JSON body in chunks
+        it.send("{");
+        it.send("\"status\": \"success\",");
+        it.send("\"device\": \"%s\",", "ESP32_Data_Server");
+        it.send("\"uptime_ms\": %lu,", millis());
+        it.send("\"sensor_active\": true");
+        it.send("}");
+
+
+
+
