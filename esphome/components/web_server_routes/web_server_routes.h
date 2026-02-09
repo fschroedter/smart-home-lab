@@ -81,10 +81,10 @@ class WebServerRoutes : public Component {
       add_header(field, value);
     }
 
-    void set_header(std::string raw_header) {
-      auto [field, value] = parse_header_(raw_header);
-      if (!field.empty()) {
-        set_header(field, value);
+    void add_headers(std::vector<std::string> raw_headers) {
+      this->headers.clear();  // Clear existing headers
+      for (const auto &h : raw_headers) {
+        add_header(h);
       }
     }
 
@@ -98,10 +98,10 @@ class WebServerRoutes : public Component {
       add_header(field, value);
     }
 
-    void set_headers(std::vector<std::string> raw_headers) {
-      this->headers.clear();  // Clear existing headers
-      for (const auto &h : raw_headers) {
-        add_header(h);
+    void set_header(std::string raw_header) {
+      auto [field, value] = parse_header_(raw_header);
+      if (!field.empty()) {
+        set_header(field, value);
       }
     }
 

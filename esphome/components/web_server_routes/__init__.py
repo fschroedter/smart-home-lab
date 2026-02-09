@@ -55,11 +55,9 @@ def _validate_routes(config):
     return config
 
 
-#   this->set_header("Cache-Control", "no-cache");
-#   this->set_header("Connection", "close");
 ROUTE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_ID): cv.declare_id(RouteEntry),
+        cv.GenerateID(CONF_ID): cv.declare_id(RouteEntry),
         cv.Optional(CONF_LAMBDA): cv.lambda_,
         cv.Optional(CONF_PATH): cv.string,
         cv.Optional(
