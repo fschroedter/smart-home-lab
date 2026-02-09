@@ -21,8 +21,6 @@ output:
   - platform: ledc
     id: lcd_backlight
     pin: GPIO23
-    inverted: false
-    frequency: 1000 Hz
 
 light:
   - platform: monochromatic
@@ -54,4 +52,3 @@ display:
     invert_colors: false
     lambda: |-
       it.image(0, 0, id(my_image));
- 
