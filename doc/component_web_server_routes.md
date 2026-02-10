@@ -126,7 +126,7 @@ web_server_routes:
         it.send_content_disposition("inline");
 
         // "Web Server Routes" encoded as byte array (ASCII)
-        const uint8_t sample_data[] = {
+        const char sample_data[] = {
             0x57, 0x65, 0x62, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,  // W e b (space) S e r v e r
             0x20, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73                     // (space) R o u t e s
         };
