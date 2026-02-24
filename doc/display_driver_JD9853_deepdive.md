@@ -104,7 +104,7 @@ void ILI9XXXDisplay::init_lcd_(const uint8_t *addr) {
 As a result, the `ILI9XXXDisplay::init_lcd_` method now initiats function calls for the `init_sequence` entry `[0x11, 0xFF, 0x7E, 0, 0, ..., 0]` as follows:
 
 
-| Processed *addr bytes                      | cmd                  | x       | num_args     | Called functions                           |
+| *addr (Processed bytes)                    | cmd                  | x       | num_args     | Called functions                           |
 | :----------------------------------------- | :----                | :----   |:------------ | :----------------------------------------- |
 | `0x11` `0x80`                              | `0x11`               | `0x80`  | 0            | send_command(`0x11`, addr, 0) + delay(150)   |
 | `0xFF` `0x7E` `0x00` `0x00` ...  `0x00`    | `0xFF`<sup>(*)</sup> | `0x7E`  | `126`        | send_command(`0xFF`, addr, 126)              |
